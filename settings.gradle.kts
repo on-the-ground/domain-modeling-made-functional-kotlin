@@ -11,4 +11,4 @@ plugins {
 }
 
 rootProject.name = "domain-modeling-made-functional-kotlin"
-include("app", "list", "utilities")
+include("app", "list", "utilities", "org/ontheground/dmmf/ordertaking")
