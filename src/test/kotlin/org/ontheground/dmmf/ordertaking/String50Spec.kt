@@ -12,24 +12,24 @@ import io.kotest.matchers.should
 import io.kotest.matchers.string.startWith
 import io.kotest.matchers.types.shouldBeInstanceOf
 
+val stringLen0 = ""
+val stringLen50 = StringGenerator.generate(50)
+val stringLen51 = StringGenerator.generate(51)
 
 class String50Spec : DescribeSpec({
 
     describe("String50") {
         context("문자열 길이가 50 이하인 경우,") {
-            val lessThen50String = StringGenerator.generate(50)
+            val string50 = String50(stringLen50)
 
-            val string50 = String50(lessThen50String)
             it("String50 객체가 정상적으로 생성된다.") {
                 string50.shouldBeInstanceOf<String50>()
             }
         }
 
         context("문자열 길이가 50 초과하는 경우,") {
-            val greaterThen50 = StringGenerator.generate(51)
-
             val exception = shouldThrow<IllegalArgumentException> {
-                String50(greaterThen50)
+                String50(stringLen51)
             }
 
             it("String50 객체 생성에 실패한다.") {
@@ -39,7 +39,7 @@ class String50Spec : DescribeSpec({
 
         context("문자열이 비어있는 경우,") {
             val exception = shouldThrow<IllegalArgumentException> {
-                String50("")
+                String50(stringLen0)
             }
 
             it("Value 객체 생성에 실패한다.") {
@@ -50,17 +50,14 @@ class String50Spec : DescribeSpec({
 
     describe("createOption") {
         context("문자열 길이가 50 이하인 경우,") {
-            val lessThen50String = StringGenerator.generate(50)
-
-            val string50 = String50.createOption(lessThen50String)
+            val string50 = String50.createOption(stringLen50)
             it("Either.Right.String50 를 응답한다.") {
                 string50.shouldBeRight().shouldBeSome()
             }
         }
 
         context("문자열 길이가 50 초과하는 경우,") {
-            val greaterThen50 = StringGenerator.generate(51)
-            val string50OrThrowable = String50.createOption(greaterThen50)
+            val string50OrThrowable = String50.createOption(stringLen51)
 
             it("Either.Left 를 응답한다.") {
                 string50OrThrowable.shouldBeLeft()
@@ -68,7 +65,7 @@ class String50Spec : DescribeSpec({
         }
 
         context("문자열이 비어있는 경우,") {
-            val string50: Either<Throwable, Option<String50>> = String50.createOption("")
+            val string50: Either<Throwable, Option<String50>> = String50.createOption(stringLen0)
 
             it("Either.Right.None 을 응답한다.") {
                 string50.shouldBeRight().shouldBeNone()
