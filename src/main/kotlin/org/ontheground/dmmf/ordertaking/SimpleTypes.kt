@@ -3,6 +3,7 @@ package org.ontheground.dmmf.ordertaking
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
+import org.ontheground.dmmf.ordertaking.ConstrainedType.isEmptyStringError
 
 // ===============================
 // Simple types and constrained types related to the OrderTaking domain.
@@ -31,7 +32,7 @@ value class String50 private constructor(val value: String) {
             return Either.catch { String50(str) }
                 .fold(
                     ifLeft = {
-                        if (ConstrainedType.isEmptyStringError(it)) null.right()
+                        if (it.isEmptyStringError()) null.right()
                         else it.left()
                     },
                     ifRight = { it.right() }
@@ -292,10 +293,20 @@ value class BillingAmount private constructor(val value: Double) {
 
 /// Useful functions for constrained types
 object ConstrainedType {
-    private val isEmptyStringErrorMessage = "Must not be null or empty"
+    private val emptyStringErrorMessage = "Must not be null or empty"
+    private val overMaxLenErrorPrefix = "Must not be more than "
+    private val patternUnmatchedErrorMessage = "must match the pattern"
 
-    fun isEmptyStringError(e: Throwable): Boolean {
-        return e.message == isEmptyStringErrorMessage
+    fun Throwable.isEmptyStringError(): Boolean {
+        return this.message == emptyStringErrorMessage
+    }
+
+    fun Throwable.isStringOverMaxLenError(): Boolean {
+        return (this.message ?: "").startsWith(overMaxLenErrorPrefix)
+    }
+
+    fun Throwable.isStringPatternUnmatchedError(): Boolean {
+        return (this.message ?: "").contains(patternUnmatchedErrorMessage)
     }
 
     /// Create a constrained string using the constructor provided
@@ -304,8 +315,8 @@ object ConstrainedType {
         maxLen: Int
     ): (String) -> kotlin.Unit {
         return { str ->
-            require(!str.isNullOrEmpty(), { isEmptyStringErrorMessage })
-            require(str.length <= maxLen, { "Must not be more than ${maxLen} chars" })
+            require(!str.isNullOrEmpty(), { emptyStringErrorMessage })
+            require(str.length <= maxLen, { overMaxLenErrorPrefix + "${maxLen} chars" })
         }
     }
 
@@ -339,8 +350,8 @@ object ConstrainedType {
         pattern: String,
     ): (String) -> kotlin.Unit {
         return { str ->
-            require(!str.isNullOrEmpty(), { isEmptyStringErrorMessage })
-            require(pattern.toRegex().matches(str), { "'${str}' must match the pattern '${pattern}'" })
+            require(!str.isNullOrEmpty(), { emptyStringErrorMessage })
+            require(pattern.toRegex().matches(str), { "'${str}' ${patternUnmatchedErrorMessage} '${pattern}'" })
         }
     }
 }

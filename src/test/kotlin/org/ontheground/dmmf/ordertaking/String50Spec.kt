@@ -1,15 +1,15 @@
 package org.ontheground.dmmf.ordertaking
 
 import arrow.core.Either
-import arrow.core.Option
 import io.kotest.assertions.arrow.core.shouldBeLeft
-import io.kotest.assertions.arrow.core.shouldBeNone
 import io.kotest.assertions.arrow.core.shouldBeRight
-import io.kotest.assertions.arrow.core.shouldBeSome
 import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import org.ontheground.dmmf.ordertaking.ConstrainedType.isEmptyStringError
+import org.ontheground.dmmf.ordertaking.ConstrainedType.isStringOverMaxLenError
 
 const val stringLen0 = ""
 val stringLen50 = StringGenerator.generate(50)
@@ -27,14 +27,14 @@ class String50Spec : DescribeSpec({
         context("문자열 길이가 50 초과하는 경우,") {
             it("String50 객체 생성에 실패한다.") {
                 String50.create(stringLen51).shouldBeLeft()
-                    .message?.shouldBe("Must not be more than 50 chars")
+                    .isStringOverMaxLenError().shouldBeTrue()
             }
         }
 
         context("문자열이 비어있는 경우,") {
             it("Value 객체 생성에 실패한다.") {
                 String50.create(stringLen0).shouldBeLeft()
-                    .message?.shouldBe("Must not be null or empty")
+                    .isEmptyStringError().shouldBeTrue()
             }
         }
     }
@@ -53,7 +53,7 @@ class String50Spec : DescribeSpec({
 
             it("Either.Left 를 응답한다.") {
                 string50OrThrowable.shouldBeLeft()
-                    .message?.shouldBe("Must not be more than 50 chars")
+                    .isStringOverMaxLenError().shouldBeTrue()
             }
         }
 
