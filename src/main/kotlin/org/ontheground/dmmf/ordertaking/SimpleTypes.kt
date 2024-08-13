@@ -1,6 +1,8 @@
 package org.ontheground.dmmf.ordertaking
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
 
 // ===============================
 // Simple types and constrained types related to the OrderTaking domain.
@@ -18,24 +20,22 @@ value class String50 private constructor(val value: String) {
     }
 
     companion object {
-        /// Create a String50 from a string
-        /// Return None if input is null, empty.
-        /// Return error if length > maxLen
-        /// Return Some if the input is valid
         fun create(str: String): Either<Throwable, String50> {
             return Either.catch { String50(str) }
         }
 
-        /// Create an optional constrained string using the constructor provided
-        /// Return None if input is null, empty.
+        /// Create a nullable constrained string using the constructor provided
+        /// Return null if input is null, empty.
         /// Return error if length > maxLen
-        /// Return Some if the input is valid
-        fun createOption(str: String): Either<Throwable, Option<String50>> {
-            return Either.catch { String50(str).some().right() }
-                .getOrElse {
-                    if (ConstrainedType.isEmptyStringError(it)) None.right()
-                    else it.left()
-                }
+        fun createNullable(str: String): Either<Throwable, String50?> {
+            return Either.catch { String50(str) }
+                .fold(
+                    ifLeft = {
+                        if (ConstrainedType.isEmptyStringError(it)) null.right()
+                        else it.left()
+                    },
+                    ifRight = { it.right() }
+                )
         }
     }
 }

@@ -7,6 +7,7 @@ import io.kotest.assertions.arrow.core.shouldBeNone
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome
 import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 
@@ -38,17 +39,17 @@ class String50Spec : DescribeSpec({
         }
     }
 
-    describe("createOption") {
+    describe("createNullable") {
         context("문자열 길이가 50 이하인 경우,") {
-            val string50 = String50.createOption(stringLen50)
+            val string50 = String50.createNullable(stringLen50)
 
             it("Either.Right.String50 를 응답한다.") {
-                string50.shouldBeRight().shouldBeSome()
+                string50.shouldBeRight().shouldBeInstanceOf<String50>()
             }
         }
 
         context("문자열 길이가 50 초과하는 경우,") {
-            val string50OrThrowable = String50.createOption(stringLen51)
+            val string50OrThrowable = String50.createNullable(stringLen51)
 
             it("Either.Left 를 응답한다.") {
                 string50OrThrowable.shouldBeLeft()
@@ -57,10 +58,10 @@ class String50Spec : DescribeSpec({
         }
 
         context("문자열이 비어있는 경우,") {
-            val string50: Either<Throwable, Option<String50>> = String50.createOption(stringLen0)
+            val string50: Either<Throwable, String50?> = String50.createNullable(stringLen0)
 
-            it("Either.Right.None 을 응답한다.") {
-                string50.shouldBeRight().shouldBeNone()
+            it("Either.Right.null 을 응답한다.") {
+                string50.shouldBeRight().shouldBeNull()
             }
         }
     }
