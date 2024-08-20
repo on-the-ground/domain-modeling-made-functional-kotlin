@@ -226,8 +226,8 @@ value class Price private constructor(val value: Double) {
 
     /// Multiply a Price by a decimal qty.
     /// Return Error if new price is out of bounds.
-    fun multiply(qty: Double): Price =
-        Price(qty * this.value)
+    fun multiply(qty: Double): Either<Throwable, Price> =
+        Price.create(qty * this.value)
 
 
     companion object {
@@ -265,8 +265,8 @@ value class BillingAmount private constructor(val value: Double) {
 
         /// Sum a list of prices to make a billing amount
         /// Return Error if total is out of bounds
-        fun sumPrices(prices: Array<Price>): BillingAmount =
-            BillingAmount(prices.sumOf { it.value })
+        fun sumPrices(prices: Array<Price>): Either<Throwable, BillingAmount> =
+            BillingAmount.create(prices.sumOf { it.value })
     }
 }
 
