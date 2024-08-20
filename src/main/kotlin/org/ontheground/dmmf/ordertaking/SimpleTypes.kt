@@ -1,6 +1,9 @@
 package org.ontheground.dmmf.ordertaking
 
-import arrow.core.*
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
+import org.ontheground.dmmf.ordertaking.ConstrainedType.isEmptyStringError
 
 // ===============================
 // Simple types and constrained types related to the OrderTaking domain.
@@ -8,46 +11,46 @@ import arrow.core.*
 // E.g. Single case discriminated unions (aka wrappers), enums, etc
 // ===============================
 
-fun Throwable.withFieldName(fieldName: String): Throwable {
-    val newMessage = "$fieldName: ${this.message}"
-    return Exception(newMessage, this)
-}
-
 /// Constrained to be 50 chars or less, not null
 @JvmInline
-value class String50(val value: String) {
-    /// Create a String50 from a string
-    /// Return Error if input is null, empty, or length > 50
+value class String50 private constructor(val value: String) {
     init {
         ConstrainedType.requireStringMaxLen(50)(value)
     }
 
     companion object {
         /// Create a String50 from a string
-        /// Return None if input is null, empty.
+        /// Return Error if input is null, empty, or length > 50
+        fun create(str: String): Either<Throwable, String50> =
+            Either.catch { String50(str) }
+
+        /// Create a nullable constrained string using the constructor provided
+        /// Return null if input is null, empty.
         /// Return error if length > maxLen
-        /// Return Some if the input is valid
-        fun createOption(str: String): Either<Throwable, Option<String50>> {
-            /// Create an optional constrained string using the constructor provided
-            /// Return None if input is null, empty.
-            /// Return error if length > maxLen
-            /// Return Some if the input is valid
-            return Either.catch { String50(str).some().right() }
-                .getOrElse { e: Throwable ->
-                    if (ConstrainedType.isEmptyStringError(e)) None.right()
-                    else e.left()
-                }
-        }
+        fun createNullable(str: String): Either<Throwable, String50?> =
+            Either.catch { String50(str) }
+                .fold(
+                    ifLeft = {
+                        if (it.isEmptyStringError()) null.right()
+                        else it.left()
+                    },
+                    ifRight = { it.right() }
+                )
     }
 }
 
-///// An email address
+/// An email address
 @JvmInline
-value class EmailAddress(val value: String) {
-    /// Create an EmailAddress from a string
-    /// Return Error if input is null, empty, or doesn't have an "@" in it
+value class EmailAddress private constructor(val value: String) {
     init {
         ConstrainedType.requireStringLike(".+@.+")(value)
+    }
+
+    companion object {
+        /// Create an EmailAddress from a string
+        /// Return Error if input is null, empty, or doesn't have an "@" in it
+        fun create(str: String): Either<Throwable, EmailAddress> =
+            Either.catch { EmailAddress(str) }
     }
 }
 
@@ -61,12 +64,8 @@ value class ZipCode private constructor(val value: String) {
     companion object {
         /// Create a ZipCode from a string
         /// Return Error if input is null, empty, or doesn't have 5 digits
-        operator fun invoke(fieldName: String): (String) -> Either<Throwable, ZipCode> {
-            return { str ->
-                Either.catch { ZipCode(str) }
-                    .mapLeft { e: Throwable -> e.withFieldName(fieldName) }
-            }
-        }
+        fun create(str: String): Either<Throwable, ZipCode> =
+            Either.catch { ZipCode(str) }
     }
 }
 
@@ -80,12 +79,8 @@ value class OrderId private constructor(val value: String) {
     companion object {
         /// Create an OrderId from a string
         /// Return Error if input is null, empty, or length > 50
-        operator fun invoke(fieldName: String): (String) -> Either<Throwable, OrderId> {
-            return { str ->
-                Either.catch { OrderId(str) }
-                    .mapLeft { e: Throwable -> e.withFieldName(fieldName) }
-            }
-        }
+        fun create(str: String): Either<Throwable, OrderId> =
+            Either.catch { OrderId(str) }
     }
 }
 
@@ -99,12 +94,8 @@ value class OrderLineId private constructor(val value: String) {
     companion object {
         /// Create an OrderLineId from a string
         /// Return Error if input is null, empty, or length > 50
-        operator fun invoke(fieldName: String): (String) -> Either<Throwable, OrderLineId> {
-            return { str ->
-                Either.catch { OrderLineId(str) }
-                    .mapLeft { e: Throwable -> e.withFieldName(fieldName) }
-            }
-        }
+        fun create(str: String): Either<Throwable, OrderLineId> =
+            Either.catch { OrderLineId(str) }
     }
 }
 
@@ -118,13 +109,9 @@ value class WidgetCode private constructor(val value: String) {
     companion object {
         /// Create an WidgetCode from a string
         /// Return Error if input is null. empty, or not matching pattern
-        operator fun invoke(fieldName: String): (String) -> Either<Throwable, WidgetCode> {
+        fun create(str: String): Either<Throwable, WidgetCode> =
             // The codes for Widgets start with a "W" and then four digits
-            return { str ->
-                Either.catch { WidgetCode(str) }
-                    .mapLeft { e: Throwable -> e.withFieldName(fieldName) }
-            }
-        }
+            Either.catch { WidgetCode(str) }
     }
 
 }
@@ -139,13 +126,9 @@ value class GizmoCode private constructor(val value: String) {
     companion object {
         /// Create an GizmoCode from a string
         /// Return Error if input is null, empty, or not matching pattern
-        operator fun invoke(fieldName: String): (String) -> Either<Throwable, GizmoCode> {
+        fun create(str: String): Either<Throwable, GizmoCode> =
             // The codes for Gizmos start with a "G" and then three digits.
-            return { str ->
-                Either.catch { GizmoCode(str) }
-                    .mapLeft { e: Throwable -> e.withFieldName(fieldName) }
-            }
-        }
+            Either.catch { GizmoCode(str) }
     }
 }
 
@@ -168,16 +151,11 @@ value class Gizmo(val value: GizmoCode) : ProductCode
 
 /// Create an ProductCode from a string
 /// Return Error if input is null, empty, or not matching pattern
-fun createProductCode(
-    fieldName: String,
-): (String) -> Either<Throwable, ProductCode> {
-    return { code ->
-        if (code.isNullOrEmpty()) Throwable("${fieldName}: Must not be null or empty").left()
-        else if (code.startsWith("W")) WidgetCode(fieldName)(code).map { w -> Widget(w) }
-        else if (code.startsWith("G")) GizmoCode(fieldName)(code).map { g -> Gizmo(g) }
-        else Throwable("${fieldName}: Format not recognized '${code}'").left()
-    }
-}
+fun createProductCode(code: String): Either<Throwable, ProductCode> =
+    if (code.isNullOrEmpty()) Throwable("Must not be null or empty").left()
+    else if (code.startsWith("W")) WidgetCode.create(code).map { Widget(it) }
+    else if (code.startsWith("G")) GizmoCode.create(code).map { Gizmo(it) }
+    else Throwable("Format not recognized '${code}'").left()
 
 
 /// Constrained to be a integer between 1 and 1000
@@ -190,12 +168,8 @@ value class UnitQuantity private constructor(val value: Int) {
     companion object {
         /// Create a UnitQuantity from a int
         /// Return Error if input is not an integer between 1 and 1000
-        operator fun invoke(fieldName: String): (Int) -> Either<Throwable, UnitQuantity> {
-            return { i ->
-                Either.catch { UnitQuantity(i) }
-                    .mapLeft { e: Throwable -> e.withFieldName(fieldName) }
-            }
-        }
+        fun create(i: Int): Either<Throwable, UnitQuantity> =
+            Either.catch { UnitQuantity(i) }
     }
 }
 
@@ -209,24 +183,19 @@ value class KilogramQuantity private constructor(val value: Double) {
     companion object {
         /// Create a KilogramQuantity from a decimal.
         /// Return Error if input is not a decimal between 0.05 and 100.00
-        operator fun invoke(fieldName: String): (Double) -> Either<Throwable, KilogramQuantity> {
-            return { i ->
-                Either.catch { KilogramQuantity(i) }
-                    .mapLeft { e: Throwable -> e.withFieldName(fieldName) }
-            }
-        }
+        fun create(i: Double): Either<Throwable, KilogramQuantity> =
+            Either.catch { KilogramQuantity(i) }
     }
 }
 
 /// A Quantity is either a Unit or a Kilogram
 sealed interface OrderQuantity {
     /// Return the value inside a OrderQuantity
-    fun value(qty: OrderQuantity): Double {
-        return when (qty) {
+    fun value(qty: OrderQuantity): Double =
+        when (qty) {
             is Unit -> qty.value.value.toDouble()
             is Kilogram -> qty.value.value
         }
-    }
 }
 
 @JvmInline
@@ -237,14 +206,11 @@ value class Kilogram(val value: KilogramQuantity) : OrderQuantity
 
 /// Create a OrderQuantity from a productCode and quantity
 fun createOrderQuantity(
-    fieldName: String,
     productCode: ProductCode,
-): (Double) -> Either<Throwable, OrderQuantity> {
-    return { quantity ->
-        when (productCode) {
-            is Widget -> UnitQuantity(fieldName)(quantity.toInt()).map { u -> Unit(u) } // lift to OrderQuantity type
-            is Gizmo -> KilogramQuantity(fieldName)(quantity).map { u -> Kilogram(u) } // lift to OrderQuantity type
-        }
+): (Double) -> Either<Throwable, OrderQuantity> = {
+    when (productCode) {
+        is Widget -> UnitQuantity.create(it.toInt()).map { i -> Unit(i) } // lift to OrderQuantity type
+        is Gizmo -> KilogramQuantity.create(it).map { i -> Kilogram(i) } // lift to OrderQuantity type
     }
 }
 
@@ -260,30 +226,24 @@ value class Price private constructor(val value: Double) {
 
     /// Multiply a Price by a decimal qty.
     /// Return Error if new price is out of bounds.
-    fun multiply(qty: Double): Price {
-        return Price(qty * this.value)
-    }
+    fun multiply(qty: Double): Price =
+        Price(qty * this.value)
 
 
     companion object {
-        operator fun invoke(fieldName: String): (Double) -> Either<Throwable, Price> {
-            /// Create a Price from a decimal.
+        fun create(p: Double): Either<Throwable, Price> =
+        /// Create a Price from a decimal.
             /// Throw an exception if out of bounds. This should only be used if you know the value is valid.
-            return { p ->
-                Either.catch { Price(p) }
-                    .mapLeft { e: Throwable -> e.withFieldName(fieldName) }
-            }
-        }
+            Either.catch { Price(p) }
 
-        fun unsafeCreate(fieldName: String): (Double) -> Price {
+
+        fun unsafeCreate(p: Double): Price {
             /// Create a Price from a decimal.
             /// Throw an exception if out of bounds. This should only be used if you know the value is valid.
-            return { p ->
-                try {
-                    Price(p)
-                } catch (e: Throwable) {
-                    throw Throwable(message = "Not expecting Price to be out of bounds", cause = e)
-                }
+            try {
+                return Price(p)
+            } catch (e: Throwable) {
+                throw Throwable(message = "Not expecting Price to be out of bounds", cause = e)
             }
         }
     }
@@ -299,49 +259,43 @@ value class BillingAmount private constructor(val value: Double) {
     companion object {
         /// Create a BillingAmount from a decimal.
         /// Return Error if input is not a decimal between 0.0 and 10000.00
-        operator fun invoke(fieldName: String): (Double) -> Either<Throwable, BillingAmount> {
-            return { i ->
-                Either.catch { BillingAmount(i) }
-                    .mapLeft { e: Throwable -> e.withFieldName(fieldName) }
-            }
-        }
+        fun create(i: Double): Either<Throwable, BillingAmount> =
+            Either.catch { BillingAmount(i) }
+
 
         /// Sum a list of prices to make a billing amount
         /// Return Error if total is out of bounds
-        fun sumPrices(prices: Array<Price>): BillingAmount {
-            return BillingAmount(prices.sumOf { p -> p.value })
-        }
+        fun sumPrices(prices: Array<Price>): BillingAmount =
+            BillingAmount(prices.sumOf { it.value })
     }
 }
 
-/// Represents a PDF attachment
-class PdfAttachment(
-    val Name: String,
-    val Bytes: ByteArray,
-)
-
-
 // ===============================
-// Reusable constructors and getters for constrained types
+// Reusable validation logic for constrained types
 // ===============================
 
 /// Useful functions for constrained types
 object ConstrainedType {
-    private val isEmptyStringErrorMessage = "Must not be null or empty"
+    private val emptyStringErrorMessage = "Must not be null or empty"
+    private val overMaxLenErrorPrefix = "Must not be more than "
+    private val patternUnmatchedErrorMessage = "must match the pattern"
 
-    fun isEmptyStringError(e: Throwable): Boolean {
-        return e.message == isEmptyStringErrorMessage
-    }
+    fun Throwable.isEmptyStringError(): Boolean =
+        this.message == emptyStringErrorMessage
+
+    fun Throwable.isStringOverMaxLenError(): Boolean =
+        (this.message ?: "").startsWith(overMaxLenErrorPrefix)
+
+    fun Throwable.isStringPatternUnmatchedError(): Boolean =
+        (this.message ?: "").contains(patternUnmatchedErrorMessage)
 
     /// Create a constrained string using the constructor provided
     /// Return Error if input is null, empty, or length > maxLen
     fun requireStringMaxLen(
         maxLen: Int
-    ): (String) -> kotlin.Unit {
-        return { str ->
-            require(!str.isNullOrEmpty(), { isEmptyStringErrorMessage })
-            require(str.length <= maxLen, { "Must not be more than ${maxLen} chars" })
-        }
+    ): (String) -> kotlin.Unit = {
+        require(!it.isNullOrEmpty(), { emptyStringErrorMessage })
+        require(it.length <= maxLen, { overMaxLenErrorPrefix + "${maxLen} chars" })
     }
 
     /// Create a constrained integer using the constructor provided
@@ -349,11 +303,9 @@ object ConstrainedType {
     fun requireIntInBetween(
         minVal: Int,
         maxVal: Int,
-    ): (Int) -> kotlin.Unit {
-        return { i ->
-            require(minVal <= i, { "Must not be less than ${minVal}" })
-            require(i <= maxVal, { "Must not be greater than ${maxVal}" })
-        }
+    ): (Int) -> kotlin.Unit = {
+        require(minVal <= it, { "Must not be less than ${minVal}" })
+        require(it <= maxVal, { "Must not be greater than ${maxVal}" })
     }
 
     /// Create a constrained decimal using the constructor provided
@@ -361,21 +313,20 @@ object ConstrainedType {
     fun requireDoubleInBetween(
         minVal: Double,
         maxVal: Double,
-    ): (Double) -> kotlin.Unit {
-        return { i: Double ->
-            require(minVal <= i, { "Must not be less than ${minVal}" })
-            require(i <= maxVal, { "Must not be greater than ${maxVal}" })
-        }
+    ): (Double) -> kotlin.Unit = {
+        require(minVal <= it, { "Must not be less than ${minVal}" })
+        require(it <= maxVal, { "Must not be greater than ${maxVal}" })
     }
+
 
     /// Create a constrained string using the constructor provided
     /// Return Error if input is null. empty, or does not match the regex pattern
     fun requireStringLike(
         pattern: String,
     ): (String) -> kotlin.Unit {
-        return { str ->
-            require(!str.isNullOrEmpty(), { isEmptyStringErrorMessage })
-            require(pattern.toRegex().matches(str), { "'${str}' must match the pattern '${pattern}'" })
+        return {
+            require(!it.isNullOrEmpty(), { emptyStringErrorMessage })
+            require(pattern.toRegex().matches(it), { "'${it}' ${patternUnmatchedErrorMessage} '${pattern}'" })
         }
     }
 }
