@@ -152,13 +152,12 @@ value class Gizmo(val value: GizmoCode) : ProductCode
 /// Create an ProductCode from a string
 /// Return Error if input is null, empty, or not matching pattern
 fun createProductCode(code: String): Either<Throwable, ProductCode> =
-    if (code.isNullOrEmpty()) Throwable("Must not be null or empty").left()
+    if (code.isEmpty()) Throwable("Must not be null or empty").left()
     else if (code.startsWith("W")) WidgetCode.create(code).map { Widget(it) }
     else if (code.startsWith("G")) GizmoCode.create(code).map { Gizmo(it) }
     else Throwable("Format not recognized '${code}'").left()
 
-
-/// Constrained to be a integer between 1 and 1000
+/// Constrained to be an integer between 1 and 1000
 @JvmInline
 value class UnitQuantity private constructor(val value: Int) {
     init {
@@ -166,7 +165,7 @@ value class UnitQuantity private constructor(val value: Int) {
     }
 
     companion object {
-        /// Create a UnitQuantity from a int
+        /// Create a UnitQuantity from an int
         /// Return Error if input is not an integer between 1 and 1000
         fun create(i: Int): Either<Throwable, UnitQuantity> =
             Either.catch { UnitQuantity(i) }
@@ -227,7 +226,7 @@ value class Price private constructor(val value: Double) {
     /// Multiply a Price by a decimal qty.
     /// Return Error if new price is out of bounds.
     fun multiply(qty: Double): Either<Throwable, Price> =
-        Price.create(qty * this.value)
+        create(qty * this.value)
 
 
     companion object {
@@ -266,7 +265,7 @@ value class BillingAmount private constructor(val value: Double) {
         /// Sum a list of prices to make a billing amount
         /// Return Error if total is out of bounds
         fun sumPrices(prices: Array<Price>): Either<Throwable, BillingAmount> =
-            BillingAmount.create(prices.sumOf { it.value })
+            create(prices.sumOf { it.value })
     }
 }
 
@@ -276,26 +275,26 @@ value class BillingAmount private constructor(val value: Double) {
 
 /// Useful functions for constrained types
 object ConstrainedType {
-    private val emptyStringErrorMessage = "Must not be null or empty"
-    private val overMaxLenErrorPrefix = "Must not be more than "
-    private val patternUnmatchedErrorMessage = "must match the pattern"
+    private const val EMPTY_STRING_PRETERMS = "Must not be null or empty"
+    private const val TOO_LONG_STRING_PRETERMS = "Must not be more than "
+    private const val PATTERN_UNMATCHED_STRING_PRETERMS = "must match the pattern"
 
     fun Throwable.isEmptyStringError(): Boolean =
-        this.message == emptyStringErrorMessage
+        this.message == EMPTY_STRING_PRETERMS
 
     fun Throwable.isStringOverMaxLenError(): Boolean =
-        (this.message ?: "").startsWith(overMaxLenErrorPrefix)
+        (this.message ?: "").startsWith(TOO_LONG_STRING_PRETERMS)
 
     fun Throwable.isStringPatternUnmatchedError(): Boolean =
-        (this.message ?: "").contains(patternUnmatchedErrorMessage)
+        (this.message ?: "").contains(PATTERN_UNMATCHED_STRING_PRETERMS)
 
     /// Create a constrained string using the constructor provided
     /// Return Error if input is null, empty, or length > maxLen
     fun requireStringMaxLen(
         maxLen: Int
     ): (String) -> kotlin.Unit = {
-        require(!it.isNullOrEmpty(), { emptyStringErrorMessage })
-        require(it.length <= maxLen, { overMaxLenErrorPrefix + "${maxLen} chars" })
+        require(it.isNotEmpty()) { EMPTY_STRING_PRETERMS }
+        require(it.length <= maxLen) { "$TOO_LONG_STRING_PRETERMS $maxLen chars" }
     }
 
     /// Create a constrained integer using the constructor provided
@@ -304,8 +303,8 @@ object ConstrainedType {
         minVal: Int,
         maxVal: Int,
     ): (Int) -> kotlin.Unit = {
-        require(minVal <= it, { "Must not be less than ${minVal}" })
-        require(it <= maxVal, { "Must not be greater than ${maxVal}" })
+        require(minVal <= it) { "Must not be less than $minVal" }
+        require(it <= maxVal) { "Must not be greater than $maxVal" }
     }
 
     /// Create a constrained decimal using the constructor provided
@@ -314,8 +313,8 @@ object ConstrainedType {
         minVal: Double,
         maxVal: Double,
     ): (Double) -> kotlin.Unit = {
-        require(minVal <= it, { "Must not be less than ${minVal}" })
-        require(it <= maxVal, { "Must not be greater than ${maxVal}" })
+        require(minVal <= it) { "Must not be less than $minVal" }
+        require(it <= maxVal) { "Must not be greater than $maxVal" }
     }
 
 
@@ -323,10 +322,9 @@ object ConstrainedType {
     /// Return Error if input is null. empty, or does not match the regex pattern
     fun requireStringLike(
         pattern: String,
-    ): (String) -> kotlin.Unit {
-        return {
-            require(!it.isNullOrEmpty(), { emptyStringErrorMessage })
-            require(pattern.toRegex().matches(it), { "'${it}' ${patternUnmatchedErrorMessage} '${pattern}'" })
-        }
+    ): (String) -> kotlin.Unit = {
+        require(it.isNotEmpty()) { EMPTY_STRING_PRETERMS }
+        require(pattern.toRegex().matches(it)) { "'${it}' $PATTERN_UNMATCHED_STRING_PRETERMS '${pattern}'" }
     }
+
 }
