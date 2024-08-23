@@ -6,8 +6,9 @@ import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.types.shouldBeInstanceOf
-import org.ontheground.dmmf.ordertaking.ConstrainedType.isEmptyStringError
-import org.ontheground.dmmf.ordertaking.ConstrainedType.isStringOverMaxLenError
+import org.ontheground.dmmf.ordertaking.common.ConstrainedType.isEmptyStringError
+import org.ontheground.dmmf.ordertaking.common.ConstrainedType.isStringOverMaxLenError
+import org.ontheground.dmmf.ordertaking.common.String50
 
 private const val stringLen0 = ""
 private val stringLen50 = StringGenerator.generate(50)
