@@ -5,8 +5,9 @@ import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.types.shouldBeInstanceOf
-import org.ontheground.dmmf.ordertaking.ConstrainedType.isEmptyStringError
-import org.ontheground.dmmf.ordertaking.ConstrainedType.isStringPatternUnmatchedError
+import org.ontheground.dmmf.ordertaking.common.ConstrainedType.isEmptyStringError
+import org.ontheground.dmmf.ordertaking.common.ConstrainedType.isStringPatternUnmatchedError
+import org.ontheground.dmmf.ordertaking.common.EmailAddress
 
 private fun Throwable.shouldBeStringPatternUnmatchedError(): kotlin.Unit =
     this.isStringPatternUnmatchedError().shouldBeTrue()
