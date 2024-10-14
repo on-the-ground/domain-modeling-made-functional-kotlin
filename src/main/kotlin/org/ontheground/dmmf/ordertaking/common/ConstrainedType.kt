@@ -22,10 +22,11 @@ object ConstrainedType {
     /// Create a constrained string using the constructor provided
     /// Return Error if input is null, empty, or length > maxLen
     fun requireStringMaxLen(
-        maxLen: Int
-    ): (String) -> kotlin.Unit = {
-        require(it.isNotEmpty()) { EMPTY_STRING_PRETERMS }
-        require(it.length <= maxLen) { "$TOO_LONG_STRING_PRETERMS $maxLen chars" }
+        maxLen: Int,
+        i: String
+    ): kotlin.Unit {
+        require(i.isNotEmpty()) { EMPTY_STRING_PRETERMS }
+        require(i.length <= maxLen) { "$TOO_LONG_STRING_PRETERMS $maxLen chars" }
     }
 
     /// Create a constrained integer using the constructor provided
@@ -33,9 +34,10 @@ object ConstrainedType {
     fun requireIntInBetween(
         minVal: Int,
         maxVal: Int,
-    ): (Int) -> kotlin.Unit = {
-        require(minVal <= it) { "Must not be less than $minVal" }
-        require(it <= maxVal) { "Must not be greater than $maxVal" }
+        i: Int
+    ): kotlin.Unit {
+        require(minVal <= i) { "Must not be less than $minVal" }
+        require(i <= maxVal) { "Must not be greater than $maxVal" }
     }
 
     /// Create a constrained decimal using the constructor provided
@@ -43,9 +45,10 @@ object ConstrainedType {
     fun requireDoubleInBetween(
         minVal: Double,
         maxVal: Double,
-    ): (Double) -> kotlin.Unit = {
-        require(minVal <= it) { "Must not be less than $minVal" }
-        require(it <= maxVal) { "Must not be greater than $maxVal" }
+        i: Double
+    ): kotlin.Unit {
+        require(minVal <= i) { "Must not be less than $minVal" }
+        require(i <= maxVal) { "Must not be greater than $maxVal" }
     }
 
 
@@ -53,9 +56,10 @@ object ConstrainedType {
     /// Return Error if input is null. empty, or does not match the regex pattern
     fun requireStringLike(
         pattern: String,
-    ): (String) -> kotlin.Unit = {
-        require(it.isNotEmpty()) { EMPTY_STRING_PRETERMS }
-        require(pattern.toRegex().matches(it)) { "'${it}' $PATTERN_UNMATCHED_STRING_PRETERMS '${pattern}'" }
+        i: String
+    ): kotlin.Unit {
+        require(i.isNotEmpty()) { EMPTY_STRING_PRETERMS }
+        require(pattern.toRegex().matches(i)) { "'${i}' $PATTERN_UNMATCHED_STRING_PRETERMS '${pattern}'" }
     }
 
 }
