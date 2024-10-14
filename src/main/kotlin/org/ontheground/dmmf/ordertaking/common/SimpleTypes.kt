@@ -15,7 +15,7 @@ import org.ontheground.dmmf.ordertaking.common.ConstrainedType.isEmptyStringErro
 @JvmInline
 value class String50 private constructor(val value: String) {
     init {
-        ConstrainedType.requireStringMaxLen(50)(value)
+        ConstrainedType.requireStringMaxLen(50, value)
     }
 
     companion object {
@@ -43,7 +43,7 @@ value class String50 private constructor(val value: String) {
 @JvmInline
 value class EmailAddress private constructor(val value: String) {
     init {
-        ConstrainedType.requireStringLike(".+@.+")(value)
+        ConstrainedType.requireStringLike(".+@.+", value)
     }
 
     companion object {
@@ -58,7 +58,7 @@ value class EmailAddress private constructor(val value: String) {
 @JvmInline
 value class ZipCode private constructor(val value: String) {
     init {
-        ConstrainedType.requireStringLike("""\d{5}""")(value)
+        ConstrainedType.requireStringLike("""\d{5}""", value)
     }
 
     companion object {
@@ -73,7 +73,7 @@ value class ZipCode private constructor(val value: String) {
 @JvmInline
 value class OrderId private constructor(val value: String) {
     init {
-        ConstrainedType.requireStringMaxLen(50)(value)
+        ConstrainedType.requireStringMaxLen(50, value)
     }
 
     companion object {
@@ -88,7 +88,7 @@ value class OrderId private constructor(val value: String) {
 @JvmInline
 value class OrderLineId private constructor(val value: String) {
     init {
-        ConstrainedType.requireStringMaxLen(50)(value)
+        ConstrainedType.requireStringMaxLen(50, value)
     }
 
     companion object {
@@ -103,7 +103,7 @@ value class OrderLineId private constructor(val value: String) {
 @JvmInline
 value class WidgetCode private constructor(val value: String) {
     init {
-        ConstrainedType.requireStringLike("""W\d{4}""")(value)
+        ConstrainedType.requireStringLike("""W\d{4}""", value)
     }
 
     companion object {
@@ -120,7 +120,7 @@ value class WidgetCode private constructor(val value: String) {
 @JvmInline
 value class GizmoCode private constructor(val value: String) {
     init {
-        ConstrainedType.requireStringLike("""G\d{3}""")(value)
+        ConstrainedType.requireStringLike("""G\d{3}""", value)
     }
 
     companion object {
@@ -161,7 +161,7 @@ fun createProductCode(code: String): Either<Throwable, ProductCode> =
 @JvmInline
 value class UnitQuantity private constructor(val value: Int) {
     init {
-        ConstrainedType.requireIntInBetween(1, 1000)(value)
+        ConstrainedType.requireIntInBetween(1, 1000, value)
     }
 
     companion object {
@@ -176,7 +176,7 @@ value class UnitQuantity private constructor(val value: Int) {
 @JvmInline
 value class KilogramQuantity private constructor(val value: Double) {
     init {
-        ConstrainedType.requireDoubleInBetween(0.05, 100.00)(value)
+        ConstrainedType.requireDoubleInBetween(0.05, 100.00, value)
     }
 
     companion object {
@@ -220,7 +220,7 @@ value class Price private constructor(val value: Double) {
     init {
         /// Create a Price from a decimal.
         /// Return Error if input is not a decimal between 0.0 and 1000.00
-        ConstrainedType.requireDoubleInBetween(0.0, 1000.00)(value)
+        ConstrainedType.requireDoubleInBetween(0.0, 1000.00, value)
     }
 
     /// Multiply a Price by a decimal qty.
@@ -252,7 +252,7 @@ value class Price private constructor(val value: Double) {
 @JvmInline
 value class BillingAmount private constructor(val value: Double) {
     init {
-        ConstrainedType.requireDoubleInBetween(0.0, 10000.00)(value)
+        ConstrainedType.requireDoubleInBetween(0.0, 10000.00, value)
     }
 
     companion object {
