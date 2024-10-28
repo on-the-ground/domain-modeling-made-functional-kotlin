@@ -1,5 +1,10 @@
 package org.ontheground.dmmf.ordertaking.common
 
+import arrow.core.Either
+import arrow.core.raise.either
+import arrow.core.raise.ensure
+
+
 // ===============================
 // Reusable validation logic for constrained types
 // ===============================
@@ -21,23 +26,27 @@ object ConstrainedType {
 
     /// Create a constrained string using the constructor provided
     /// Return Error if input is null, empty, or length > maxLen
-    fun requireStringMaxLen(
+    fun <T> ensureStringMaxLen(
         maxLen: Int,
-        i: String
-    ): kotlin.Unit {
-        require(i.isNotEmpty()) { EMPTY_STRING_PRETERMS }
-        require(i.length <= maxLen) { "$TOO_LONG_STRING_PRETERMS $maxLen chars" }
+        i: String,
+        ctor: () -> T,
+    ): Either<Throwable, T> = either {
+        ensure(i.isNotEmpty()) { Error(EMPTY_STRING_PRETERMS) }
+        ensure(i.length <= maxLen) { Error("$TOO_LONG_STRING_PRETERMS $maxLen chars") }
+        ctor()
     }
 
     /// Create a constrained integer using the constructor provided
     /// Return Error if input is less than minVal or more than maxVal
-    fun requireIntInBetween(
+    fun <T> ensureIntInBetween(
         minVal: Int,
         maxVal: Int,
-        i: Int
-    ): kotlin.Unit {
-        require(minVal <= i) { "Must not be less than $minVal" }
-        require(i <= maxVal) { "Must not be greater than $maxVal" }
+        i: Int,
+        ctor: () -> T,
+    ): Either<Throwable, T> = either {
+        ensure(minVal <= i) { Error("Must not be less than $minVal") }
+        ensure(i <= maxVal) { Error("Must not be greater than $maxVal") }
+        ctor()
     }
 
     /// Create a constrained decimal using the constructor provided
@@ -52,14 +61,29 @@ object ConstrainedType {
     }
 
 
+    /// Create a constrained decimal using the constructor provided
+    /// Return Error if input is less than minVal or more than maxVal
+    fun <T> ensureDoubleInBetween(
+        minVal: Double,
+        maxVal: Double,
+        i: Double,
+        ctor: () -> T,
+    ): Either<Throwable, T> = either {
+        ensure(minVal <= i) { Error("Must not be less than $minVal") }
+        ensure(i <= maxVal) { Error("Must not be greater than $maxVal") }
+        ctor()
+    }
+
     /// Create a constrained string using the constructor provided
     /// Return Error if input is null. empty, or does not match the regex pattern
-    fun requireStringLike(
+    fun <T> ensureStringLike(
         pattern: String,
-        i: String
-    ): kotlin.Unit {
-        require(i.isNotEmpty()) { EMPTY_STRING_PRETERMS }
-        require(pattern.toRegex().matches(i)) { "'${i}' $PATTERN_UNMATCHED_STRING_PRETERMS '${pattern}'" }
+        i: String,
+        ctor: () -> T,
+    ): Either<Throwable, T> = either {
+        ensure(i.isNotEmpty()) { Error(EMPTY_STRING_PRETERMS) }
+        ensure(pattern.toRegex().matches(i)) { Error("'${i}' $PATTERN_UNMATCHED_STRING_PRETERMS '${pattern}'") }
+        ctor()
     }
 
 }

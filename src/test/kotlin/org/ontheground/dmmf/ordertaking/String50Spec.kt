@@ -26,7 +26,7 @@ class String50Spec : DescribeSpec({
     describe("String50") {
         context("문자열 길이가 50 이하인 경우,") {
             it("String50 객체가 정상적으로 생성된다.") {
-                String50.create(stringLen50)
+                String50(stringLen50)
                     .shouldBeRight()
                     .shouldBeInstanceOf<String50>()
             }
@@ -34,7 +34,7 @@ class String50Spec : DescribeSpec({
 
         context("문자열 길이가 50 초과하는 경우,") {
             it("String50 객체 생성에 실패한다.") {
-                String50.create(stringLen51)
+                String50(stringLen51)
                     .shouldBeLeft()
                     .shouldBeStringTooLongError()
             }
@@ -42,7 +42,7 @@ class String50Spec : DescribeSpec({
 
         context("문자열이 비어있는 경우,") {
             it("Value 객체 생성에 실패한다.") {
-                String50.create(stringLen0)
+                String50(stringLen0)
                     .shouldBeLeft()
                     .shouldBeEmptyStringError()
             }
