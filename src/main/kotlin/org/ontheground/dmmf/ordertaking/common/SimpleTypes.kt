@@ -123,11 +123,11 @@ value class Gizmo(val value: GizmoCode) : ProductCode
 
 /// Create an ProductCode from a string
 /// Return Error if input is null, empty, or not matching pattern
-fun createProductCode(code: String): Either<Throwable, ProductCode> =
-    if (code.isEmpty()) Throwable("Must not be null or empty").left()
-    else if (code.startsWith("W")) WidgetCode(code).map { Widget(it) }
-    else if (code.startsWith("G")) GizmoCode(code).map { Gizmo(it) }
-    else Throwable("Format not recognized '${code}'").left()
+fun String.toProductCode(): Either<Throwable, ProductCode> =
+    if (this.isEmpty()) Throwable("Must not be null or empty").left()
+    else if (this.startsWith("W")) WidgetCode(this).map { Widget(it) }
+    else if (this.startsWith("G")) GizmoCode(this).map { Gizmo(it) }
+    else Throwable("Format not recognized '${this}'").left()
 
 /// Constrained to be an integer between 1 and 1000
 @JvmInline
@@ -168,14 +168,11 @@ value class Unit(val value: UnitQuantity) : OrderQuantity
 value class Kilogram(val value: KilogramQuantity) : OrderQuantity
 
 /// Create a OrderQuantity from a productCode and quantity
-fun createOrderQuantity(
-    productCode: ProductCode,
-): (Double) -> Either<Throwable, OrderQuantity> = {
+fun Double.toOrderQuantity(productCode: ProductCode): Either<Throwable, OrderQuantity> =
     when (productCode) {
-        is Widget -> UnitQuantity(it.toInt()).map { i -> Unit(i) } // lift to OrderQuantity type
-        is Gizmo -> KilogramQuantity(it).map { i -> Kilogram(i) } // lift to OrderQuantity type
+        is Widget -> UnitQuantity(this.toInt()).map { i -> Unit(i) } // lift to OrderQuantity type
+        is Gizmo -> KilogramQuantity(this).map { i -> Kilogram(i) } // lift to OrderQuantity type
     }
-}
 
 
 /// Constrained to be a decimal between 0.0 and 1000.00
