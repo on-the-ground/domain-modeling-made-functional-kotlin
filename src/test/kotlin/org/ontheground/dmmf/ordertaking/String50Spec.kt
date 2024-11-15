@@ -1,5 +1,6 @@
 package org.ontheground.dmmf.ordertaking
 
+import arrow.core.raise.either
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.DescribeSpec
@@ -14,10 +15,10 @@ private const val stringLen0 = ""
 private val stringLen50 = StringGenerator.generate(50)
 private val stringLen51 = StringGenerator.generate(51)
 
-private fun Throwable.shouldBeStringTooLongError(): kotlin.Unit =
+private fun Throwable.shouldBeStringTooLongError() =
     this.isStringOverMaxLenError().shouldBeTrue()
 
-private fun Throwable.shouldBeEmptyStringError(): kotlin.Unit =
+private fun Throwable.shouldBeEmptyStringError() =
     this.isEmptyStringError().shouldBeTrue()
 
 
@@ -26,7 +27,7 @@ class String50Spec : DescribeSpec({
     describe("String50") {
         context("문자열 길이가 50 이하인 경우,") {
             it("String50 객체가 정상적으로 생성된다.") {
-                String50(stringLen50)
+                either { String50(stringLen50) }
                     .shouldBeRight()
                     .shouldBeInstanceOf<String50>()
             }
@@ -34,7 +35,7 @@ class String50Spec : DescribeSpec({
 
         context("문자열 길이가 50 초과하는 경우,") {
             it("String50 객체 생성에 실패한다.") {
-                String50(stringLen51)
+                either { String50(stringLen51) }
                     .shouldBeLeft()
                     .shouldBeStringTooLongError()
             }
@@ -42,7 +43,7 @@ class String50Spec : DescribeSpec({
 
         context("문자열이 비어있는 경우,") {
             it("Value 객체 생성에 실패한다.") {
-                String50(stringLen0)
+                either { String50(stringLen0) }
                     .shouldBeLeft()
                     .shouldBeEmptyStringError()
             }
@@ -52,7 +53,7 @@ class String50Spec : DescribeSpec({
     describe("createNullable") {
         context("문자열 길이가 50 이하인 경우,") {
             it("Either.Right.String50 를 응답한다.") {
-                String50.createNullable(stringLen50)
+                either { String50.createNullable(stringLen50) }
                     .shouldBeRight()
                     .shouldBeInstanceOf<String50>()
             }
@@ -60,7 +61,7 @@ class String50Spec : DescribeSpec({
 
         context("문자열 길이가 50 초과하는 경우,") {
             it("Either.Left 를 응답한다.") {
-                String50.createNullable(stringLen51)
+                either { String50.createNullable(stringLen51) }
                     .shouldBeLeft()
                     .shouldBeStringTooLongError()
             }
@@ -68,7 +69,7 @@ class String50Spec : DescribeSpec({
 
         context("문자열이 비어있는 경우,") {
             it("Either.Right.null 을 응답한다.") {
-                String50.createNullable(stringLen0)
+                either { String50.createNullable(stringLen0) }
                     .shouldBeRight()
                     .shouldBeNull()
             }
