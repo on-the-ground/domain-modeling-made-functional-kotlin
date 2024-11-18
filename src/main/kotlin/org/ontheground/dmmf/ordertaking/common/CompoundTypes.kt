@@ -20,8 +20,8 @@ data class PersonalName(
 
 
 data class CustomerInfo(
-    val Name : PersonalName,
-    val EmailAddress : EmailAddress,
+    val name : PersonalName,
+    val emailAddress : EmailAddress,
 )
 
 // ==================================
@@ -29,12 +29,12 @@ data class CustomerInfo(
 // ==================================
 
 data class Address(
-    val AddressLine1 : String50,
-    val AddressLine2 : String50?,
-    val AddressLine3 : String50?,
-    val AddressLine4 : String50?,
-    val City : String50,
-    val ZipCode : ZipCode,
+    val addressLine1 : String50,
+    val addressLine2 : String50?,
+    val addressLine3 : String50?,
+    val addressLine4 : String50?,
+    val city : String50,
+    val zipCode : ZipCode,
 )
 
 // ==================================
