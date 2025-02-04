@@ -1,7 +1,6 @@
 package org.ontheground.dmmf.ordertaking.common
 
-import arrow.core.Either
-import arrow.core.raise.either
+import arrow.core.raise.Raise
 import arrow.core.raise.ensure
 
 
@@ -25,65 +24,69 @@ object ConstrainedType {
         (this.message ?: "").contains(PATTERN_UNMATCHED_STRING_PRETERMS)
 
     /// Create a constrained string using the constructor provided
-    /// Return Error if input is null, empty, or length > maxLen
+    /// Return IllegalArgumentException if input is null, empty, or length > maxLen
+    context(Raise<IllegalArgumentException>)
     fun <T> ensureStringMaxLen(
         maxLen: Int,
         i: String,
         ctor: () -> T,
-    ): Either<Throwable, T> = either {
-        ensure(i.isNotEmpty()) { Error(EMPTY_STRING_PRETERMS) }
-        ensure(i.length <= maxLen) { Error("$TOO_LONG_STRING_PRETERMS $maxLen chars") }
-        ctor()
+    ): T {
+        ensure(i.isNotEmpty()) { IllegalArgumentException(EMPTY_STRING_PRETERMS) }
+        ensure(i.length <= maxLen) { IllegalArgumentException("$TOO_LONG_STRING_PRETERMS $maxLen chars") }
+        return ctor()
     }
 
     /// Create a constrained integer using the constructor provided
-    /// Return Error if input is less than minVal or more than maxVal
+    /// Return IllegalArgumentException if input is less than minVal or more than maxVal
+    context(Raise<IllegalArgumentException>)
     fun <T> ensureIntInBetween(
         minVal: Int,
         maxVal: Int,
         i: Int,
         ctor: () -> T,
-    ): Either<Throwable, T> = either {
-        ensure(minVal <= i) { Error("Must not be less than $minVal") }
-        ensure(i <= maxVal) { Error("Must not be greater than $maxVal") }
-        ctor()
+    ): T {
+        ensure(minVal <= i) { IllegalArgumentException("Must not be less than $minVal") }
+        ensure(i <= maxVal) { IllegalArgumentException("Must not be greater than $maxVal") }
+        return ctor()
     }
 
     /// Create a constrained decimal using the constructor provided
-    /// Return Error if input is less than minVal or more than maxVal
+    /// Return IllegalArgumentException if input is less than minVal or more than maxVal
     fun requireDoubleInBetween(
         minVal: Double,
         maxVal: Double,
         i: Double
-    ): kotlin.Unit {
+    ) {
         require(minVal <= i) { "Must not be less than $minVal" }
         require(i <= maxVal) { "Must not be greater than $maxVal" }
     }
 
 
     /// Create a constrained decimal using the constructor provided
-    /// Return Error if input is less than minVal or more than maxVal
+    /// Return IllegalArgumentException if input is less than minVal or more than maxVal
+    context(Raise<IllegalArgumentException>)
     fun <T> ensureDoubleInBetween(
         minVal: Double,
         maxVal: Double,
         i: Double,
         ctor: () -> T,
-    ): Either<Throwable, T> = either {
-        ensure(minVal <= i) { Error("Must not be less than $minVal") }
-        ensure(i <= maxVal) { Error("Must not be greater than $maxVal") }
-        ctor()
+    ): T {
+        ensure(minVal <= i) { IllegalArgumentException("Must not be less than $minVal") }
+        ensure(i <= maxVal) { IllegalArgumentException("Must not be greater than $maxVal") }
+        return ctor()
     }
 
     /// Create a constrained string using the constructor provided
-    /// Return Error if input is null. empty, or does not match the regex pattern
+    /// Return IllegalArgumentException if input is null. empty, or does not match the regex pattern
+    context(Raise<IllegalArgumentException>)
     fun <T> ensureStringLike(
         pattern: String,
         i: String,
         ctor: () -> T,
-    ): Either<Throwable, T> = either {
-        ensure(i.isNotEmpty()) { Error(EMPTY_STRING_PRETERMS) }
-        ensure(pattern.toRegex().matches(i)) { Error("'${i}' $PATTERN_UNMATCHED_STRING_PRETERMS '${pattern}'") }
-        ctor()
+    ): T {
+        ensure(i.isNotEmpty()) { IllegalArgumentException(EMPTY_STRING_PRETERMS) }
+        ensure(pattern.toRegex().matches(i)) { IllegalArgumentException("'${i}' $PATTERN_UNMATCHED_STRING_PRETERMS '${pattern}'") }
+        return ctor()
     }
 
 }

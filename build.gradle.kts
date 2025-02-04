@@ -1,6 +1,8 @@
+
 plugins {
-	kotlin("jvm") version "2.0.20"
-	kotlin("kapt") version "2.0.20"
+	kotlin("jvm") version "2.0.21"
+	kotlin("kapt") version "2.0.21"
+	kotlin("plugin.serialization") version "2.0.21"
 }
 
 group = "org.ontheground"
@@ -8,7 +10,7 @@ version = "0.0.1"
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(17)
+		languageVersion = JavaLanguageVersion.of(21)
 	}
 }
 
@@ -17,13 +19,25 @@ repositories {
 }
 
 
-val kotestVersion = "5.5.4"
+val kotestVersion = "5.9.1"
 val arrowVersion = "1.2.4"
+val exposedVersion = "0.56.0"
+val postgresDriverVersion = "42.7.4"
 dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
+	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+	implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
 	implementation("io.arrow-kt:arrow-core:$arrowVersion")
 	implementation("io.arrow-kt:arrow-optics:$arrowVersion")
-	kapt("io.arrow-kt:arrow-meta:$arrowVersion")
+	implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
+	implementation("org.jetbrains.exposed:exposed-crypt:$exposedVersion")
+	implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
+	implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+	implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
+	implementation("org.jetbrains.exposed:exposed-json:$exposedVersion")
+	implementation("org.postgresql:postgresql:$postgresDriverVersion")
+
+	kapt("io.arrow-kt:arrow-meta:1.6.2")
 
 	testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
 	testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
