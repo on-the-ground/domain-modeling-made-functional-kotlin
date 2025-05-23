@@ -1,8 +1,8 @@
 
 plugins {
-	kotlin("jvm") version "2.0.21"
-	kotlin("kapt") version "2.0.21"
-	kotlin("plugin.serialization") version "2.0.21"
+	kotlin("jvm") version "2.2.0-RC"
+	kotlin("kapt") version "2.2.0-RC"
+	kotlin("plugin.serialization") version "2.2.0-RC"
 }
 
 group = "org.ontheground"
@@ -48,9 +48,9 @@ dependencies {
 
 kotlin {
 	compilerOptions {
-		freeCompilerArgs.addAll("-Xjsr305=strict", "-Xcontext-receivers")
-		languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
-		apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
+		freeCompilerArgs.addAll("-Xjsr305=strict", "-Xcontext-parameters")
+		languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2)
+		apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2)
 	}
 }
 
