@@ -25,28 +25,28 @@ object ConstrainedType {
 
     /// Create a constrained string using the constructor provided
     /// Return IllegalArgumentException if input is null, empty, or length > maxLen
-    context(Raise<IllegalArgumentException>)
+    context(r: Raise<IllegalArgumentException>)
     fun <T> ensureStringMaxLen(
         maxLen: Int,
         i: String,
         ctor: () -> T,
     ): T {
-        ensure(i.isNotEmpty()) { IllegalArgumentException(EMPTY_STRING_PRETERMS) }
-        ensure(i.length <= maxLen) { IllegalArgumentException("$TOO_LONG_STRING_PRETERMS $maxLen chars") }
+        r.ensure(i.isNotEmpty()) { IllegalArgumentException(EMPTY_STRING_PRETERMS) }
+        r.ensure(i.length <= maxLen) { IllegalArgumentException("$TOO_LONG_STRING_PRETERMS $maxLen chars") }
         return ctor()
     }
 
     /// Create a constrained integer using the constructor provided
     /// Return IllegalArgumentException if input is less than minVal or more than maxVal
-    context(Raise<IllegalArgumentException>)
+    context(r: Raise<IllegalArgumentException>)
     fun <T> ensureIntInBetween(
         minVal: Int,
         maxVal: Int,
         i: Int,
         ctor: () -> T,
     ): T {
-        ensure(minVal <= i) { IllegalArgumentException("Must not be less than $minVal") }
-        ensure(i <= maxVal) { IllegalArgumentException("Must not be greater than $maxVal") }
+        r.ensure(minVal <= i) { IllegalArgumentException("Must not be less than $minVal") }
+        r.ensure(i <= maxVal) { IllegalArgumentException("Must not be greater than $maxVal") }
         return ctor()
     }
 
@@ -64,28 +64,28 @@ object ConstrainedType {
 
     /// Create a constrained decimal using the constructor provided
     /// Return IllegalArgumentException if input is less than minVal or more than maxVal
-    context(Raise<IllegalArgumentException>)
+    context(r: Raise<IllegalArgumentException>)
     fun <T> ensureDoubleInBetween(
         minVal: Double,
         maxVal: Double,
         i: Double,
         ctor: () -> T,
     ): T {
-        ensure(minVal <= i) { IllegalArgumentException("Must not be less than $minVal") }
-        ensure(i <= maxVal) { IllegalArgumentException("Must not be greater than $maxVal") }
+        r.ensure(minVal <= i) { IllegalArgumentException("Must not be less than $minVal") }
+        r.ensure(i <= maxVal) { IllegalArgumentException("Must not be greater than $maxVal") }
         return ctor()
     }
 
     /// Create a constrained string using the constructor provided
     /// Return IllegalArgumentException if input is null. empty, or does not match the regex pattern
-    context(Raise<IllegalArgumentException>)
+    context(r: Raise<IllegalArgumentException>)
     fun <T> ensureStringLike(
         pattern: String,
         i: String,
         ctor: () -> T,
     ): T {
-        ensure(i.isNotEmpty()) { IllegalArgumentException(EMPTY_STRING_PRETERMS) }
-        ensure(pattern.toRegex().matches(i)) { IllegalArgumentException("'${i}' $PATTERN_UNMATCHED_STRING_PRETERMS '${pattern}'") }
+        r.ensure(i.isNotEmpty()) { IllegalArgumentException(EMPTY_STRING_PRETERMS) }
+        r.ensure(pattern.toRegex().matches(i)) { IllegalArgumentException("'${i}' $PATTERN_UNMATCHED_STRING_PRETERMS '${pattern}'") }
         return ctor()
     }
 
