@@ -4,22 +4,30 @@ import arrow.core.raise.either
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.DescribeSpec
-import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.types.shouldBeInstanceOf
-import org.ontheground.dmmf.ordertaking.common.ConstrainedType.isEmptyStringError
-import org.ontheground.dmmf.ordertaking.common.ConstrainedType.isStringOverMaxLenError
+import org.ontheground.dmmf.ordertaking.common.ErrEmptyString
+import org.ontheground.dmmf.ordertaking.common.ErrPrimitiveConstraints
+import org.ontheground.dmmf.ordertaking.common.ErrStringTooLong
 import org.ontheground.dmmf.ordertaking.common.String50
 
 private const val stringLen0 = ""
 private val stringLen50 = StringGenerator.generate(50)
 private val stringLen51 = StringGenerator.generate(51)
 
-private fun Throwable.shouldBeStringTooLongError() =
-    this.isStringOverMaxLenError().shouldBeTrue()
+private fun Any.shouldBeStringTooLongError() =
+    if (this is ErrPrimitiveConstraints) {
+        this is ErrStringTooLong
+    } else {
+        false
+    }
 
-private fun Throwable.shouldBeEmptyStringError() =
-    this.isEmptyStringError().shouldBeTrue()
+private fun Any.shouldBeEmptyStringError() =
+    if (this is ErrPrimitiveConstraints) {
+        this is ErrEmptyString
+    } else {
+        false
+    }
 
 
 class String50Spec : DescribeSpec({

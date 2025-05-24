@@ -3,6 +3,18 @@ package org.ontheground.dmmf.ordertaking.common
 import arrow.core.raise.Raise
 import arrow.core.raise.ensure
 
+sealed interface ErrPrimitiveConstraints
+
+sealed interface ErrStringMaxLen : ErrPrimitiveConstraints
+sealed interface ErrNumberInBetween: ErrPrimitiveConstraints
+sealed interface ErrStringLike: ErrPrimitiveConstraints
+
+object ErrEmptyString : ErrStringMaxLen, ErrStringLike
+class ErrStringTooLong(val maxLen: Int) : ErrStringMaxLen
+class ErrPatternUnmatched(val pattern: String, val string: String) : ErrStringLike
+
+class ErrNumberLessThanMin(val min: Number) : ErrNumberInBetween
+class ErrNumberGreaterThanMax(val max: Number) : ErrNumberInBetween
 
 // ===============================
 // Reusable validation logic for constrained types
@@ -10,82 +22,57 @@ import arrow.core.raise.ensure
 
 /// Useful functions for constrained types
 object ConstrainedType {
-    private const val EMPTY_STRING_PRETERMS = "Must not be null or empty"
-    private const val TOO_LONG_STRING_PRETERMS = "Must not be more than "
-    private const val PATTERN_UNMATCHED_STRING_PRETERMS = "must match the pattern"
-
-    fun Throwable.isEmptyStringError(): Boolean =
-        this.message == EMPTY_STRING_PRETERMS
-
-    fun Throwable.isStringOverMaxLenError(): Boolean =
-        (this.message ?: "").startsWith(TOO_LONG_STRING_PRETERMS)
-
-    fun Throwable.isStringPatternUnmatchedError(): Boolean =
-        (this.message ?: "").contains(PATTERN_UNMATCHED_STRING_PRETERMS)
-
     /// Create a constrained string using the constructor provided
     /// Return IllegalArgumentException if input is null, empty, or length > maxLen
-    context(r: Raise<IllegalArgumentException>)
+    context(r: Raise<ErrPrimitiveConstraints>)
     fun <T> ensureStringMaxLen(
         maxLen: Int,
         i: String,
         ctor: () -> T,
     ): T {
-        r.ensure(i.isNotEmpty()) { IllegalArgumentException(EMPTY_STRING_PRETERMS) }
-        r.ensure(i.length <= maxLen) { IllegalArgumentException("$TOO_LONG_STRING_PRETERMS $maxLen chars") }
+        r.ensure(i.isNotEmpty()) { ErrEmptyString }
+        r.ensure(i.length <= maxLen) { ErrStringTooLong(maxLen) }
         return ctor()
     }
 
     /// Create a constrained integer using the constructor provided
     /// Return IllegalArgumentException if input is less than minVal or more than maxVal
-    context(r: Raise<IllegalArgumentException>)
+    context(r: Raise<ErrPrimitiveConstraints>)
     fun <T> ensureIntInBetween(
         minVal: Int,
         maxVal: Int,
         i: Int,
         ctor: () -> T,
     ): T {
-        r.ensure(minVal <= i) { IllegalArgumentException("Must not be less than $minVal") }
-        r.ensure(i <= maxVal) { IllegalArgumentException("Must not be greater than $maxVal") }
+        r.ensure(minVal <= i) { ErrNumberLessThanMin(minVal) }
+        r.ensure(i <= maxVal) { ErrNumberGreaterThanMax(maxVal) }
         return ctor()
     }
 
     /// Create a constrained decimal using the constructor provided
     /// Return IllegalArgumentException if input is less than minVal or more than maxVal
-    fun requireDoubleInBetween(
-        minVal: Double,
-        maxVal: Double,
-        i: Double
-    ) {
-        require(minVal <= i) { "Must not be less than $minVal" }
-        require(i <= maxVal) { "Must not be greater than $maxVal" }
-    }
-
-
-    /// Create a constrained decimal using the constructor provided
-    /// Return IllegalArgumentException if input is less than minVal or more than maxVal
-    context(r: Raise<IllegalArgumentException>)
+    context(r: Raise<ErrNumberInBetween>)
     fun <T> ensureDoubleInBetween(
         minVal: Double,
         maxVal: Double,
         i: Double,
         ctor: () -> T,
     ): T {
-        r.ensure(minVal <= i) { IllegalArgumentException("Must not be less than $minVal") }
-        r.ensure(i <= maxVal) { IllegalArgumentException("Must not be greater than $maxVal") }
+        r.ensure(minVal <= i) { ErrNumberLessThanMin(minVal) }
+        r.ensure(i <= maxVal) { ErrNumberGreaterThanMax(maxVal) }
         return ctor()
     }
 
     /// Create a constrained string using the constructor provided
     /// Return IllegalArgumentException if input is null. empty, or does not match the regex pattern
-    context(r: Raise<IllegalArgumentException>)
+    context(r: Raise<ErrStringLike>)
     fun <T> ensureStringLike(
         pattern: String,
         i: String,
         ctor: () -> T,
     ): T {
-        r.ensure(i.isNotEmpty()) { IllegalArgumentException(EMPTY_STRING_PRETERMS) }
-        r.ensure(pattern.toRegex().matches(i)) { IllegalArgumentException("'${i}' $PATTERN_UNMATCHED_STRING_PRETERMS '${pattern}'") }
+        r.ensure(i.isNotEmpty()) { ErrEmptyString }
+        r.ensure(pattern.toRegex().matches(i)) { ErrPatternUnmatched(pattern, i) }
         return ctor()
     }
 
