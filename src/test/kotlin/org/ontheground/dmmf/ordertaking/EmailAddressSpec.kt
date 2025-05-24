@@ -6,15 +6,24 @@ import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.types.shouldBeInstanceOf
-import org.ontheground.dmmf.ordertaking.common.ConstrainedType.isEmptyStringError
-import org.ontheground.dmmf.ordertaking.common.ConstrainedType.isStringPatternUnmatchedError
 import org.ontheground.dmmf.ordertaking.common.EmailAddress
+import org.ontheground.dmmf.ordertaking.common.ErrEmptyString
+import org.ontheground.dmmf.ordertaking.common.ErrPatternUnmatched
+import org.ontheground.dmmf.ordertaking.common.ErrPrimitiveConstraints
 
-private fun Throwable.shouldBeStringPatternUnmatchedError() =
-    this.isStringPatternUnmatchedError().shouldBeTrue()
+private fun Any.shouldBeStringPatternUnmatchedError() =
+    if (this is ErrPrimitiveConstraints) {
+        this is ErrPatternUnmatched
+    } else {
+        false
+    }
 
-private fun Throwable.shouldBeEmptyStringError() =
-    this.isEmptyStringError().shouldBeTrue()
+private fun Any.shouldBeEmptyStringError() =
+    if (this is ErrPrimitiveConstraints) {
+        this is ErrEmptyString
+    } else {
+        false
+    }
 
 
 class EmailAddressSpec : DescribeSpec({
