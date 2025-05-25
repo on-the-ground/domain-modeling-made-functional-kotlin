@@ -11,14 +11,14 @@ import org.ontheground.dmmf.ordertaking.common.ErrEmptyString
 import org.ontheground.dmmf.ordertaking.common.ErrPatternUnmatched
 import org.ontheground.dmmf.ordertaking.common.ErrPrimitiveConstraints
 
-private fun Any.shouldBeStringPatternUnmatchedError() =
+private fun Any.isStringPatternUnmatchedError() =
     if (this is ErrPrimitiveConstraints) {
         this is ErrPatternUnmatched
     } else {
         false
     }
 
-private fun Any.shouldBeEmptyStringError() =
+private fun Any.isEmptyStringError() =
     if (this is ErrPrimitiveConstraints) {
         this is ErrEmptyString
     } else {
@@ -40,7 +40,8 @@ class EmailAddressSpec : DescribeSpec({
             it("EmailAddress 객체 생성에 실패한다.") {
                 either { EmailAddress("foobar") }
                     .shouldBeLeft()
-                    .shouldBeStringPatternUnmatchedError()
+                    .isStringPatternUnmatchedError()
+                    .shouldBeTrue()
             }
         }
 
@@ -48,7 +49,8 @@ class EmailAddressSpec : DescribeSpec({
             it("Value 객체 생성에 실패한다.") {
                 either { EmailAddress("") }
                     .shouldBeLeft()
-                    .shouldBeEmptyStringError()
+                    .isEmptyStringError()
+                    .shouldBeTrue()
             }
         }
     }
