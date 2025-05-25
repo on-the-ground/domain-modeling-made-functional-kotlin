@@ -1,19 +1,25 @@
-package org.ontheground.dmmf.ordertaking.placeorder
+package org.ontheground.dmmf.ordertaking.placeorder.implementationwoeffects
 
 import arrow.core.raise.Raise
-import arrow.core.raise.withError
+import arrow.core.raise.either
 import org.ontheground.dmmf.ordertaking.common.*
+import org.ontheground.dmmf.ordertaking.placeorder.*
 
 // ======================================================
-// This file contains the final implementation for the PlaceOrder workflow
+// This file contains the implementation for the PlaceOrder workflow
+// WITHOUT any effects like Result or Async
 //
-// This represents the code in chapter 10, "Working with Errors"
+// This represents the code in chapter 9, "Composing a Pipeline"
 //
 // There are two parts:
 // * the first section contains the (type-only) definitions for each step
 // * the second section contains the implementations for each step
 //   and the implementation of the overall workflow
 // ======================================================
+
+
+// ------------------------------------
+// the workflow itself, without effects
 
 
 // ======================================================
@@ -36,7 +42,7 @@ object AddressNotFound : AddressValidationError
 typealias CheckedAddress = UnvalidatedAddress
 
 typealias CheckAddressExists =
-        suspend context(Raise<AddressValidationError>) (UnvalidatedAddress) -> CheckedAddress
+            (UnvalidatedAddress) -> CheckedAddress
 
 // ---------------------------
 // Validated Order
@@ -56,8 +62,7 @@ class ValidatedOrder(
     val lines: List<ValidatedOrderLine>,
 )
 
-typealias ValidateOrder = suspend context(Raise<ValidationError>) // effects
-UnvalidatedOrder. // input
+typealias ValidateOrder = UnvalidatedOrder. // input
     (CheckProductCodeExists, CheckAddressExists)  // dependency
 -> ValidatedOrder // output
 
@@ -69,8 +74,7 @@ typealias GetProductPrice = (ProductCode) -> Price
 
 // priced state is defined Domain.WorkflowTypes
 
-typealias PriceOrder = context(Raise<PricingError>) // effects
-ValidatedOrder.  // input
+typealias PriceOrder = ValidatedOrder.  // input
     (GetProductPrice)     // dependency
 -> PricedOrder  // output
 
@@ -123,81 +127,64 @@ typealias CreateEvents =
 // ValidateOrder step
 // ---------------------------
 
-context(r: Raise<ValidationError>)
-fun UnvalidatedCustomerInfo.toCustomerInfo(): CustomerInfo = r.withError(
-    { ValidationError(it.toString()) },
-    {
-        val unvalidated = this@toCustomerInfo
-        val firstName = String50(unvalidated.firstName)
-        val lastName = String50(unvalidated.lastName)
-        val emailAddress = EmailAddress(unvalidated.emailAddress)
-        CustomerInfo(PersonalName(firstName, lastName), emailAddress)
-    },
-)
+fun <E, A> throwOnError(
+    block: Raise<E>.() -> A,
+): A = either { block() }
+    .fold(
+        ifLeft = { throw RuntimeException(it.toString()) },
+        ifRight = { it }
+    )
+
+fun UnvalidatedCustomerInfo.toCustomerInfo(): CustomerInfo {
+    val unvalidated = this
+    val firstName = throwOnError { String50(unvalidated.firstName) }
+    val lastName = throwOnError { String50(unvalidated.lastName) }
+    val emailAddress = throwOnError { EmailAddress(unvalidated.emailAddress) }
+    return CustomerInfo(PersonalName(firstName, lastName), emailAddress)
+}
 
 
-context(r: Raise<ValidationError>)
-fun CheckedAddress.toAddress(): Address = r.withError(
-    { ValidationError(it.toString()) },
-    {
-        val checked = this@toAddress
-        val addressLine1 = String50(checked.addressLine1)
-        val addressLine2 = checked.addressLine2?.let { String50(it) }
-        val addressLine3 = checked.addressLine3?.let { String50(it) }
-        val addressLine4 = checked.addressLine4?.let { String50(it) }
-        val city = String50(checked.city)
-        val zipCode = ZipCode(checked.zipCode)
-        Address(addressLine1, addressLine2, addressLine3, addressLine4, city, zipCode)
-    },
-)
+fun CheckedAddress.toAddress(): Address {
+    val checked = this
+    val addressLine1 = throwOnError { String50(checked.addressLine1) }
+    val addressLine2 = checked.addressLine2?.let { throwOnError { String50(it) } }
+    val addressLine3 = checked.addressLine3?.let { throwOnError { String50(it) } }
+    val addressLine4 = checked.addressLine4?.let { throwOnError { String50(it) } }
+    val city = throwOnError { String50(checked.city) }
+    val zipCode = throwOnError { ZipCode(checked.zipCode) }
+    return Address(addressLine1, addressLine2, addressLine3, addressLine4, city, zipCode)
+}
 
 
 /// Call the checkAddressExists and convert the error to a ValidationError
-context(r: Raise<ValidationError>)
-suspend fun UnvalidatedAddress.toCheckedAddress(checkAddress: CheckAddressExists): CheckedAddress =
-    r.withError<ValidationError, AddressValidationError, CheckedAddress>(
-        { ValidationError(it.toString()) },
-        { checkAddress(this@toCheckedAddress) },
-    )
+fun UnvalidatedAddress.toCheckedAddress(checkAddress: CheckAddressExists): CheckedAddress {
+    return checkAddress(this)
+}
 
 /// Helper function for validateOrder
-context(r: Raise<ValidationError>)
-fun String.toOrderId(): OrderId = r.withError(
-    { ValidationError(it.toString()) },
-    { OrderId(this@toOrderId) },
-)
-
-/// Helper function for validateOrder
-context(r: Raise<ValidationError>)
-fun String.toOrderLineId(): OrderLineId = r.withError(
-    { ValidationError(it.toString()) },
-    { OrderLineId(this@toOrderLineId) },
-)
+fun String.toOrderId(): OrderId = throwOnError { OrderId(this@toOrderId) }
 
 
 /// Helper function for validateOrder
-context(r: Raise<ValidationError>)
-fun String.toProductCode(checkProductCodeExists: CheckProductCodeExists): ProductCode = r.withError(
-    { ValidationError(it.toString()) },
-    {
-        val code = ProductCode(this@toProductCode)
-        if (checkProductCodeExists(code)) {
-            code
-        } else {
-            r.raise(ValidationError("Invalid: ${code}"))
-        }
-    },
-)
+fun String.toOrderLineId(): OrderLineId = throwOnError { OrderLineId(this@toOrderLineId) }
+
 
 /// Helper function for validateOrder
-context(r: Raise<ValidationError>)
-fun Double.toOrderQuantity(productCode: ProductCode): OrderQuantity = r.withError(
-    { ValidationError(it.toString()) },
-    { OrderQuantity(productCode, this@toOrderQuantity) },
-)
+fun String.toProductCode(checkProductCodeExists: CheckProductCodeExists): ProductCode {
+    val code = throwOnError { ProductCode(this@toProductCode) }
+    return if (checkProductCodeExists(code)) {
+        code
+    } else {
+        throw RuntimeException("Invalid: ${code}")
+    }
+}
 
 /// Helper function for validateOrder
-context(r: Raise<ValidationError>)
+fun Double.toOrderQuantity(productCode: ProductCode): OrderQuantity = throwOnError {
+    OrderQuantity(productCode, this@toOrderQuantity)
+}
+
+/// Helper function for validateOrder
 fun UnvalidatedOrderLine.toValidatedOrderLine(checkProductExists: CheckProductCodeExists): ValidatedOrderLine {
     val orderLineId = this.orderLineId.toOrderLineId()
     val productCode = this.productCode.toProductCode(checkProductExists)
@@ -225,16 +212,12 @@ val validateOrder: ValidateOrder = { checkCodeExists, checkAddressExists ->
 // PriceOrder step
 // ---------------------------
 
-context(r: Raise<PricingError>)
 fun ValidatedOrderLine.toPricedOrderLine(getProductPrice: GetProductPrice): PricedOrderLine {
     val qty = when (val q = this.quantity) {
         is OrderQuantity.Kilogram -> q.value
         is OrderQuantity.Unit -> q.value.toDouble()
     }
-    val linePrice = r.withError(
-        { PricingError(it.toString()) },
-        { getProductPrice(this@toPricedOrderLine.productCode).multiply(qty) },
-    )
+    val linePrice = throwOnError { getProductPrice(this@toPricedOrderLine.productCode).multiply(qty) }
     return PricedOrderLine(
         this.orderLineId,
         this.productCode,
@@ -243,15 +226,11 @@ fun ValidatedOrderLine.toPricedOrderLine(getProductPrice: GetProductPrice): Pric
     )
 }
 
-context(r: Raise<PricingError>)
 fun ValidatedOrder.priceOrder(getProductPrice: GetProductPrice): PricedOrder {
     val lines = this.lines.map { it.toPricedOrderLine(getProductPrice) }
     val linePrices = lines.map { it.linePrice }
-    val amountToBill = r.withError<PricingError, ErrPrimitiveConstraints, BillingAmount>(
-        { PricingError(it.toString()) },
-        { BillingAmount.sumPrices(linePrices) }
+    val amountToBill = throwOnError { BillingAmount.sumPrices(linePrices) }
 
-    )
     return PricedOrder(
         this.orderId,
         this.customerInfo,
@@ -323,23 +302,16 @@ val createEvents: CreateEvents = { pricedOrder, ackSent ->
 // overall workflow
 // ---------------------------
 
-context(r: Raise<PlaceOrderError>)
-suspend fun UnvalidatedOrder.placeOrder(
+fun UnvalidatedOrder.placeOrder(
     checkCodeExists: CheckProductCodeExists,
     checkAddressExists: CheckAddressExists,
     getProductPrice: GetProductPrice,
     createOrderAcknowledgmentLetter: CreateOrderAcknowledgmentLetter,
     sendOrderAcknowledgment: SendOrderAcknowledgment,
 ): List<PlaceOrderEvent> {
-    val validatedOrder = r.withError(
-        { ValidationError(it.toString()) },
-        { this@placeOrder.validateOrder(checkCodeExists, checkAddressExists) },
-    )
+    val validatedOrder = this@placeOrder.validateOrder(checkCodeExists, checkAddressExists)
 
-    val pricedOrder = r.withError(
-        { PricingError(it.toString()) },
-        { validatedOrder.priceOrder(getProductPrice) }
-    )
+    val pricedOrder = validatedOrder.priceOrder(getProductPrice)
 
     val acknowledgementOption = pricedOrder.acknowledgeOrder(createOrderAcknowledgmentLetter, sendOrderAcknowledgment)
 
