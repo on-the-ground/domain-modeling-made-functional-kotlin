@@ -4,6 +4,7 @@ import arrow.core.raise.either
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.ontheground.dmmf.ordertaking.common.ErrEmptyString
@@ -15,14 +16,14 @@ private const val stringLen0 = ""
 private val stringLen50 = StringGenerator.generate(50)
 private val stringLen51 = StringGenerator.generate(51)
 
-private fun Any.shouldBeStringTooLongError() =
+private fun Any.isStringTooLongError() =
     if (this is ErrPrimitiveConstraints) {
         this is ErrStringTooLong
     } else {
         false
     }
 
-private fun Any.shouldBeEmptyStringError() =
+private fun Any.isEmptyStringError() =
     if (this is ErrPrimitiveConstraints) {
         this is ErrEmptyString
     } else {
@@ -45,7 +46,8 @@ class String50Spec : DescribeSpec({
             it("String50 객체 생성에 실패한다.") {
                 either { String50(stringLen51) }
                     .shouldBeLeft()
-                    .shouldBeStringTooLongError()
+                    .isStringTooLongError()
+                    .shouldBeTrue()
             }
         }
 
@@ -53,7 +55,8 @@ class String50Spec : DescribeSpec({
             it("Value 객체 생성에 실패한다.") {
                 either { String50(stringLen0) }
                     .shouldBeLeft()
-                    .shouldBeEmptyStringError()
+                    .isEmptyStringError()
+                    .shouldBeTrue()
             }
         }
     }
@@ -71,7 +74,7 @@ class String50Spec : DescribeSpec({
             it("Either.Left 를 응답한다.") {
                 either { String50.createNullable(stringLen51) }
                     .shouldBeLeft()
-                    .shouldBeStringTooLongError()
+                    .isStringTooLongError()
             }
         }
 

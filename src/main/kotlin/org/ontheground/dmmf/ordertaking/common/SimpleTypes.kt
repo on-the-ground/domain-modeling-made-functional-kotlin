@@ -119,12 +119,12 @@ value class Gizmo(val value: GizmoCode) : ProductCode
 /// Create an ProductCode from a string
 /// Raise ErrPrimitiveConstraints if input is null, empty, or not matching pattern
 context(r: Raise<ErrPrimitiveConstraints>)
-fun String.toProductCode(): ProductCode =
-    ConstrainedType.ensureStringLike("""W\d{4}|G\d{3}""", this) {
+fun ProductCode(str: String): ProductCode =
+    ConstrainedType.ensureStringLike("""W\d{4}|G\d{3}""", str) {
         when {
-            this.startsWith("W") -> Widget(WidgetCode(this))
-            this.startsWith("G") -> Gizmo(GizmoCode(this))
-            else -> throw (RuntimeException("Invalid widget code: $this"))
+            str.startsWith("W") -> Widget(WidgetCode(str))
+            str.startsWith("G") -> Gizmo(GizmoCode(str))
+            else -> throw (RuntimeException("Invalid widget code: $str"))
         }
     }
 
@@ -155,9 +155,9 @@ sealed interface OrderQuantity {
 
 /// Create a OrderQuantity from a productCode and quantity
 context(_: Raise<ErrPrimitiveConstraints>)
-fun Double.toOrderQuantity(productCode: ProductCode): OrderQuantity = when (productCode) {
-    is Widget -> OrderQuantity.Unit(this.toInt()) // lift to OrderQuantity type
-    is Gizmo -> OrderQuantity.Kilogram(this) // lift to OrderQuantity type
+fun OrderQuantity(productCode: ProductCode, quantity: Double): OrderQuantity = when (productCode) {
+    is Widget -> OrderQuantity.Unit(quantity.toInt()) // lift to OrderQuantity type
+    is Gizmo -> OrderQuantity.Kilogram(quantity) // lift to OrderQuantity type
 }
 
 /// Constrained to be a decimal between 0.0 and 1000.00
@@ -190,6 +190,6 @@ value class BillingAmount private constructor(val value: Double) {
         /// Sum a list of prices to make a billing amount
         /// Raise ErrPrimitiveConstraints if total is out of bounds
         context(_: Raise<ErrPrimitiveConstraints>)
-        fun sumPrices(prices: Array<Price>): BillingAmount = invoke(prices.sumOf { it.value })
+        fun sumPrices(prices: List<Price>): BillingAmount = invoke(prices.sumOf { it.value })
     }
 }
