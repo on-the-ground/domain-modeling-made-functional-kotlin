@@ -102,11 +102,9 @@ value class GizmoCode private constructor(val value: String) {
 ///// A ProductCode is either a Widget or a Gizmo
 sealed interface ProductCode {
     /// Return the string value inside a ProductCode
-    fun value() {
-        when (this) {
-            is Widget -> this.value.value
-            is Gizmo -> this.value.value
-        }
+    fun value() = when (this) {
+        is Widget -> this.value.value
+        is Gizmo -> this.value.value
     }
 }
 
@@ -151,6 +149,12 @@ sealed interface OrderQuantity {
             operator fun invoke(i: Int) = ConstrainedType.ensureIntInBetween(1, 1000, i) { Unit(i) }
         }
     }
+
+    /// Return the string value inside a ProductCode
+    fun value() = when (this) {
+        is Kilogram -> this.value
+        is Unit -> this.value.toDouble()
+    }
 }
 
 /// Create a OrderQuantity from a productCode and quantity
@@ -174,6 +178,8 @@ value class Price private constructor(val value: Double) {
         context(_: Raise<ErrPrimitiveConstraints>)
         operator fun invoke(p: Double): Price =
             ConstrainedType.ensureDoubleInBetween(0.0, 1000.00, p) { Price(p) }
+
+        fun unsafeCreate(p: Double) = Price(p)
     }
 }
 

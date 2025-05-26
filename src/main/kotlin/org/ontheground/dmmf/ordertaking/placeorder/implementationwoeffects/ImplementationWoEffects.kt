@@ -213,10 +213,7 @@ val validateOrder: ValidateOrder = { checkCodeExists, checkAddressExists ->
 // ---------------------------
 
 fun ValidatedOrderLine.toPricedOrderLine(getProductPrice: GetProductPrice): PricedOrderLine {
-    val qty = when (val q = this.quantity) {
-        is OrderQuantity.Kilogram -> q.value
-        is OrderQuantity.Unit -> q.value.toDouble()
-    }
+    val qty = this.quantity.value()
     val linePrice = throwOnError { getProductPrice(this@toPricedOrderLine.productCode).multiply(qty) }
     return PricedOrderLine(
         this.orderLineId,
