@@ -228,10 +228,7 @@ val validateOrder: ValidateOrder = { checkCodeExists, checkAddressExists ->
 
 context(r: Raise<PricingError>)
 fun ValidatedOrderLine.toPricedOrderLine(getProductPrice: GetProductPrice): PricedOrderLine {
-    val qty = when (val q = this.quantity) {
-        is OrderQuantity.Kilogram -> q.value
-        is OrderQuantity.Unit -> q.value.toDouble()
-    }
+    val qty = this.quantity.value()
     val linePrice = r.withError(
         { PricingError(it.toString()) },
         { getProductPrice(this@toPricedOrderLine.productCode).multiply(qty) },
