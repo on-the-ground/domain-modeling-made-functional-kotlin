@@ -1,13 +1,15 @@
 package org.ontheground.dmmf.ordertaking.placeorder.api
 
-import arrow.core.Either
-import arrow.core.raise.either
+import arrow.core.raise.recover
+import arrow.core.raise.withError
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.ontheground.dmmf.ordertaking.common.ErrPrimitiveConstraints
 import org.ontheground.dmmf.ordertaking.common.Price
-import org.ontheground.dmmf.ordertaking.placeorder.*
+import org.ontheground.dmmf.ordertaking.placeorder.OrderFormDto
+import org.ontheground.dmmf.ordertaking.placeorder.PlaceOrderError
+import org.ontheground.dmmf.ordertaking.placeorder.ValidationError
 import org.ontheground.dmmf.ordertaking.placeorder.implementation.*
+import org.ontheground.dmmf.ordertaking.placeorder.toDto
 
 // ======================================================
 // This file contains the JSON API interface to the PlaceOrder workflow
@@ -19,10 +21,8 @@ import org.ontheground.dmmf.ordertaking.placeorder.implementation.*
 
 typealias JsonString = String
 
-inline fun <reified T> JsonString.deserialize() = Json.decodeFromString<T>(this)
-inline fun <reified T> serializeJson(i: T): JsonString {
-    return Json.encodeToString(i)
-}
+inline fun <reified T> JsonString.toDto(): T = Json.decodeFromString(this)
+inline fun <reified T> T.toJson(): JsonString = Json.encodeToString(this)
 
 /// Very simplified version!
 data class HttpRequest(
@@ -61,45 +61,35 @@ private val sendOrderAcknowledgment: SendOrderAcknowledgment = { Sent }
 // workflow
 // -------------------------------
 
-/// This function converts the workflow output into a HttpResponse
-fun Either<PlaceOrderError, List<PlaceOrderEvent>>.workflowResultToHttpReponse() = this.fold<HttpResponse>(
-    {
-        // turn domain errors into a dto
-        val dto = it.toDto()
-        // and serialize to JSON
-        HttpResponse(401, serializeJson<PlaceOrderErrorDto>(dto))
-    },
-    {
-        // turn domain events into dtos
-        either<ErrPrimitiveConstraints, List<PlaceOrderEventDto>> {
-            it.map { it.toDto() }
-        }.fold(
-            {
-                HttpResponse(401, it.toString())
-            },
-            {
-                // and serialize to JSON
-                HttpResponse(200, serializeJson<List<PlaceOrderEventDto>>(it))
-            }
-        )
-    },
-)
-
 val placeOrderApi: PlaceOrderApi = {
-// following the approach in "A Complete Serialization Pipeline" in chapter 11
+    // following the approach in "A Complete Serialization Pipeline" in chapter 11
+    recover<PlaceOrderError, HttpResponse>(
+        {
+            // start with a string
+            val orderFormDto = it.body.toDto<OrderFormDto>()
 
-// start with a string
-    either<PlaceOrderError, List<PlaceOrderEvent>> {
-        it.body
-            .deserialize<OrderFormDto>()
-            .toUnvalidatedOrder()
-            .placeOrder(
-                checkProductExists, // dependency
-                checkAddressExists, // dependency
-                getProductPrice,    // dependency
-                createOrderAcknowledgmentLetter,  // dependency
-                sendOrderAcknowledgment, // dependency
-            )
-    }.workflowResultToHttpReponse() // now convert from the pure domain back to a HttpResponse
+            val placeOrderEvents = orderFormDto
+                .toUnvalidatedOrder()
+                .placeOrder(
+                    checkProductExists, // dependency
+                    checkAddressExists, // dependency
+                    getProductPrice,    // dependency
+                    createOrderAcknowledgmentLetter,  // dependency
+                    sendOrderAcknowledgment, // dependency
+                )
+
+            withError({ ValidationError(it.toString()) }, {
+                placeOrderEvents
+                    .map { it.toDto() }
+                    .toJson()
+                    .let { HttpResponse(200, it) }
+            })
+        },
+        {
+            it.toDto() // turn domain errors into a dto
+                .toJson() // and serialize to JSON
+                .let { HttpResponse(401, it) }
+        },
+    )
 }
 
