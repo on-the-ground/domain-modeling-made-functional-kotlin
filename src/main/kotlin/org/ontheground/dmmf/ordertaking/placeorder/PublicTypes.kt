@@ -1,15 +1,8 @@
 package org.ontheground.dmmf.ordertaking.placeorder
 
 import arrow.core.raise.Raise
-import org.ontheground.dmmf.ordertaking.common.EmailAddress
-import org.ontheground.dmmf.ordertaking.common.OrderId
-import org.ontheground.dmmf.ordertaking.common.OrderLineId
-import org.ontheground.dmmf.ordertaking.common.OrderQuantity
-import org.ontheground.dmmf.ordertaking.common.Price
-import org.ontheground.dmmf.ordertaking.common.ProductCode
-import org.ontheground.dmmf.ordertaking.common.CustomerInfo
-import org.ontheground.dmmf.ordertaking.common.Address
-import org.ontheground.dmmf.ordertaking.common.BillingAmount
+import org.ontheground.dmmf.ordertaking.common.*
+import org.ontheground.dmmf.ordertaking.common.domain.base.Entity
 
 // We are defining types and submodules, so we can use a namespace
 // rather than a module at the top level
@@ -55,53 +48,58 @@ data class UnvalidatedOrder(
 // ------------------------------------
 // outputs from the workflow (success case)
 
-/// Event will be created if the Acknowledgment was successfully posted
-data class OrderAcknowledgmentSent (
-    val orderId : OrderId,
-    val emailAddress : EmailAddress,
-): PlaceOrderEvent
-
-
 
 // priced state
-class PricedOrderLine (
-    val orderLineId : OrderLineId,
-    val productCode : ProductCode,
-    val quantity : OrderQuantity,
-    val linePrice : Price,
-)
+class PricedOrderLine(
+    val orderLineId: OrderLineId,
+    val productCode: ProductCode,
+    val quantity: OrderQuantity,
+    val linePrice: Price,
+) : Entity<OrderLineId>() {
+    override val id: OrderLineId
+        get() = orderLineId
+}
 
 
-class PricedOrder (
-    val orderId : OrderId,
-    val customerInfo : CustomerInfo,
-    val shippingAddress : Address,
-    val billingAddress : Address,
-    val amountToBill : BillingAmount,
-    val lines : List<PricedOrderLine>,
-)
-
-/// Event to send to shipping context
-data class OrderPlaced (
-    val orderId : OrderId,
-    val customerInfo : CustomerInfo,
-    val shippingAddress : Address,
-    val billingAddress : Address,
-    val amountToBill : BillingAmount,
-    val lines : List<PricedOrderLine>,
-): PlaceOrderEvent
-
-/// Event to send to billing context
-/// Will only be created if the AmountToBill is not zero
-data class  BillableOrderPlaced (
-    val orderId : OrderId,
-    val billingAddress : Address,
-    val amountToBill : BillingAmount,
-): PlaceOrderEvent
+class PricedOrder(
+    val orderId: OrderId,
+    val customerInfo: CustomerInfo,
+    val shippingAddress: Address,
+    val billingAddress: Address,
+    val amountToBill: BillingAmount,
+    val lines: List<PricedOrderLine>,
+) : Entity<OrderId>() {
+    override val id: OrderId
+        get() = orderId
+}
 
 /// The possible events resulting from the PlaceOrder workflow
 /// Not all events will occur, depending on the logic of the workflow
-sealed interface PlaceOrderEvent
+sealed interface PlaceOrderEvent {
+    /// Event to send to shipping context
+    data class OrderPlaced(
+        val orderId: OrderId,
+        val customerInfo: CustomerInfo,
+        val shippingAddress: Address,
+        val billingAddress: Address,
+        val amountToBill: BillingAmount,
+        val lines: List<PricedOrderLine>,
+    ) : PlaceOrderEvent
+
+    /// Event to send to billing context
+    /// Will only be created if the AmountToBill is not zero
+    data class BillableOrderPlaced(
+        val orderId: OrderId,
+        val billingAddress: Address,
+        val amountToBill: BillingAmount,
+    ) : PlaceOrderEvent
+
+    /// Event will be created if the Acknowledgment was successfully posted
+    data class OrderAcknowledgmentSent(
+        val orderId: OrderId,
+        val emailAddress: EmailAddress,
+    ) : PlaceOrderEvent
+}
 
 
 // ------------------------------------
@@ -110,20 +108,20 @@ sealed interface PlaceOrderEvent
 
 /// All the things that can go wrong in this workflow
 @JvmInline
-value class ValidationError (val value: String): PlaceOrderError
+value class ValidationError(val value: String) : PlaceOrderError
 
 @JvmInline
-value class PricingError (val value: String): PlaceOrderError
+value class PricingError(val value: String) : PlaceOrderError
 
-data class ServiceInfo (
-    val name : String,
+data class ServiceInfo(
+    val name: String,
     val endpoint: String, // todo uri
 )
 
-data class RemoteServiceError (
-    val service : ServiceInfo,
-    val exception : Throwable, // todo System.Exception
-): PlaceOrderError
+data class RemoteServiceError(
+    val service: ServiceInfo,
+    val exception: Throwable, // todo System.Exception
+) : PlaceOrderError
 
 
 sealed interface PlaceOrderError

@@ -8,7 +8,7 @@ import arrow.core.raise.Raise
 // E.g. Single case discriminated unions (aka wrappers), enums, etc
 // ===============================
 
-/// Constrained to be 50 chars or less, not null
+/// Constrained to be 50 chars or fewer, not null
 @JvmInline
 value class String50 private constructor(val value: String) {
     companion object {
@@ -50,7 +50,7 @@ value class ZipCode private constructor(val value: String) {
     }
 }
 
-/// An Id for Orders. Constrained to be a non-empty string <= 50 chars
+/// An ID for Orders. Constrained to be a non-empty string <= 50 chars
 @JvmInline
 value class OrderId private constructor(val value: String) {
     companion object {
@@ -61,7 +61,7 @@ value class OrderId private constructor(val value: String) {
     }
 }
 
-/// An Id for OrderLines. Constrained to be a non-empty string <= 50 chars
+/// An ID for OrderLines. Constrained to be a non-empty string <= 50 chars
 @JvmInline
 value class OrderLineId private constructor(val value: String) {
     companion object {
@@ -90,7 +90,7 @@ value class WidgetCode private constructor(val value: String) {
 @JvmInline
 value class GizmoCode private constructor(val value: String) {
     companion object {
-        /// Create an GizmoCode from a string
+        /// Create a GizmoCode from a string
         /// Raise ErrPrimitiveConstraints if input is null, empty, or not matching pattern
         context(_: Raise<ErrPrimitiveConstraints>)
         operator fun invoke(str: String): GizmoCode =
@@ -101,6 +101,12 @@ value class GizmoCode private constructor(val value: String) {
 
 ///// A ProductCode is either a Widget or a Gizmo
 sealed interface ProductCode {
+    @JvmInline
+    value class Widget(val value: WidgetCode) : ProductCode
+
+    @JvmInline
+    value class Gizmo(val value: GizmoCode) : ProductCode
+
     /// Return the string value inside a ProductCode
     fun value() = when (this) {
         is Widget -> this.value.value
@@ -108,20 +114,14 @@ sealed interface ProductCode {
     }
 }
 
-@JvmInline
-value class Widget(val value: WidgetCode) : ProductCode
-
-@JvmInline
-value class Gizmo(val value: GizmoCode) : ProductCode
-
-/// Create an ProductCode from a string
+/// Create a ProductCode from a string
 /// Raise ErrPrimitiveConstraints if input is null, empty, or not matching pattern
 context(r: Raise<ErrPrimitiveConstraints>)
 fun ProductCode(str: String): ProductCode =
     ConstrainedType.ensureStringLike("""W\d{4}|G\d{3}""", str) {
         when {
-            str.startsWith("W") -> Widget(WidgetCode(str))
-            str.startsWith("G") -> Gizmo(GizmoCode(str))
+            str.startsWith("W") -> ProductCode.Widget(WidgetCode(str))
+            str.startsWith("G") -> ProductCode.Gizmo(GizmoCode(str))
             else -> throw (RuntimeException("Invalid widget code: $str"))
         }
     }
@@ -160,8 +160,8 @@ sealed interface OrderQuantity {
 /// Create a OrderQuantity from a productCode and quantity
 context(_: Raise<ErrPrimitiveConstraints>)
 fun OrderQuantity(productCode: ProductCode, quantity: Double): OrderQuantity = when (productCode) {
-    is Widget -> OrderQuantity.Unit(quantity.toInt()) // lift to OrderQuantity type
-    is Gizmo -> OrderQuantity.Kilogram(quantity) // lift to OrderQuantity type
+    is ProductCode.Widget -> OrderQuantity.Unit(quantity.toInt()) // lift to OrderQuantity type
+    is ProductCode.Gizmo -> OrderQuantity.Kilogram(quantity) // lift to OrderQuantity type
 }
 
 /// Constrained to be a decimal between 0.0 and 1000.00
@@ -194,7 +194,7 @@ value class BillingAmount private constructor(val value: Double) {
             ConstrainedType.ensureDoubleInBetween(0.0, 10000.00, i) { BillingAmount(i) }
 
         /// Sum a list of prices to make a billing amount
-        /// Raise ErrPrimitiveConstraints if total is out of bounds
+        /// Raise ErrPrimitiveConstraints if the total is out of bounds
         context(_: Raise<ErrPrimitiveConstraints>)
         fun sumPrices(prices: List<Price>): BillingAmount = invoke(prices.sumOf { it.value })
     }
