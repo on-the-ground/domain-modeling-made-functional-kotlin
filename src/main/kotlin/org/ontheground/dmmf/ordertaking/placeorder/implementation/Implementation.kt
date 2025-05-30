@@ -40,6 +40,10 @@ typealias CheckedAddress = UnvalidatedAddress
 typealias CheckAddressExists =
         suspend context(Raise<AddressValidationError>) (UnvalidatedAddress) -> CheckedAddress
 
+interface AddressVerificationService {
+    val checkAddressExists: CheckAddressExists
+}
+
 // ---------------------------
 // Validated Order
 // ---------------------------
@@ -64,9 +68,9 @@ class ValidatedOrder(
         get() = orderId
 }
 
-typealias ValidateOrder = suspend context(Raise<ValidationError>) // effects
+typealias ValidateOrder = suspend context(Raise<ValidationError>, AddressVerificationService) // effects
 UnvalidatedOrder. // input
-    (CheckProductCodeExists, CheckAddressExists)  // dependency
+    (CheckProductCodeExists)  // dependency
 -> ValidatedOrder // output
 
 // ---------------------------
@@ -161,11 +165,11 @@ fun CheckedAddress.toAddress(): Address = r.withError(
 
 
 /// Call the checkAddressExists and convert the error to a ValidationError
-context(r: Raise<ValidationError>)
-suspend fun UnvalidatedAddress.toCheckedAddress(checkAddress: CheckAddressExists): CheckedAddress =
+context(r: Raise<ValidationError>, avs: AddressVerificationService)
+suspend fun UnvalidatedAddress.toCheckedAddress(): CheckedAddress =
     r.withError<ValidationError, AddressValidationError, CheckedAddress>(
         { ValidationError(it.toString()) },
-        { checkAddress(this@toCheckedAddress) },
+        { avs.checkAddressExists(this@toCheckedAddress) },
     )
 
 /// Helper function for validateOrder
@@ -213,11 +217,11 @@ fun UnvalidatedOrderLine.toValidatedOrderLine(checkProductExists: CheckProductCo
     return ValidatedOrderLine(orderLineId, productCode, quantity)
 }
 
-val validateOrder: ValidateOrder = { checkCodeExists, checkAddressExists ->
+val validateOrder: ValidateOrder = { checkCodeExists ->
     val orderId = this.orderId.toOrderId()
     val customerInfo = this.customerInfo.toCustomerInfo()
-    val shippingAddress = this.shippingAddress.toCheckedAddress(checkAddressExists).toAddress()
-    val billingAddress = this.billingAddress.toCheckedAddress(checkAddressExists).toAddress()
+    val shippingAddress = this.shippingAddress.toCheckedAddress().toAddress()
+    val billingAddress = this.billingAddress.toCheckedAddress().toAddress()
     val lines = this.lines.map { it.toValidatedOrderLine(checkCodeExists) }
     ValidatedOrder(
         orderId,
@@ -328,17 +332,16 @@ val createEvents: CreateEvents = { pricedOrder, ackSent ->
 // overall workflow
 // ---------------------------
 
-context(r: Raise<PlaceOrderError>)
+context(r: Raise<PlaceOrderError>, _: AddressVerificationService)
 suspend fun UnvalidatedOrder.placeOrder(
     checkCodeExists: CheckProductCodeExists,
-    checkAddressExists: CheckAddressExists,
     getProductPrice: GetProductPrice,
     createOrderAcknowledgmentLetter: CreateOrderAcknowledgmentLetter,
     sendOrderAcknowledgment: SendOrderAcknowledgment,
 ): List<PlaceOrderEvent> {
     val validatedOrder = r.withError(
         { ValidationError(it.toString()) },
-        { this@placeOrder.validateOrder(checkCodeExists, checkAddressExists) },
+        { this@placeOrder.validateOrder(checkCodeExists) },
     )
 
     val pricedOrder = r.withError(

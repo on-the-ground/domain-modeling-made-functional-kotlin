@@ -45,6 +45,10 @@ typealias CheckedAddress = UnvalidatedAddress
 typealias CheckAddressExists =
             (UnvalidatedAddress) -> CheckedAddress
 
+interface AddressVerificationService {
+    val checkAddressExists: CheckAddressExists
+}
+
 // ---------------------------
 // Validated Order
 // ---------------------------
@@ -69,8 +73,9 @@ class ValidatedOrder(
         get() = orderId
 }
 
-typealias ValidateOrder = UnvalidatedOrder. // input
-    (CheckProductCodeExists, CheckAddressExists)  // dependency
+typealias ValidateOrder = context(AddressVerificationService) // ambient context
+UnvalidatedOrder. // input
+    (CheckProductCodeExists)  // dependency
 -> ValidatedOrder // output
 
 // ---------------------------
@@ -164,8 +169,9 @@ fun CheckedAddress.toAddress(): Address {
 
 
 /// Call the checkAddressExists and convert the error to a ValidationError
-fun UnvalidatedAddress.toCheckedAddress(checkAddress: CheckAddressExists): CheckedAddress {
-    return checkAddress(this)
+context(avs: AddressVerificationService)
+fun UnvalidatedAddress.toCheckedAddress(): CheckedAddress {
+    return avs.checkAddressExists(this)
 }
 
 /// Helper function for validateOrder
@@ -199,11 +205,11 @@ fun UnvalidatedOrderLine.toValidatedOrderLine(checkProductExists: CheckProductCo
     return ValidatedOrderLine(orderLineId, productCode, quantity)
 }
 
-val validateOrder: ValidateOrder = { checkCodeExists, checkAddressExists ->
+val validateOrder: ValidateOrder = { checkCodeExists ->
     val orderId = this.orderId.toOrderId()
     val customerInfo = this.customerInfo.toCustomerInfo()
-    val shippingAddress = this.shippingAddress.toCheckedAddress(checkAddressExists).toAddress()
-    val billingAddress = this.billingAddress.toCheckedAddress(checkAddressExists).toAddress()
+    val shippingAddress = this.shippingAddress.toCheckedAddress().toAddress()
+    val billingAddress = this.billingAddress.toCheckedAddress().toAddress()
     val lines = this.lines.map { it.toValidatedOrderLine(checkCodeExists) }
     ValidatedOrder(
         orderId,
@@ -306,14 +312,14 @@ val createEvents: CreateEvents = { pricedOrder, ackSent ->
 // overall workflow
 // ---------------------------
 
+context(_: AddressVerificationService)
 fun UnvalidatedOrder.placeOrder(
     checkCodeExists: CheckProductCodeExists,
-    checkAddressExists: CheckAddressExists,
     getProductPrice: GetProductPrice,
     createOrderAcknowledgmentLetter: CreateOrderAcknowledgmentLetter,
     sendOrderAcknowledgment: SendOrderAcknowledgment,
 ): List<PlaceOrderEvent> {
-    val validatedOrder = this@placeOrder.validateOrder(checkCodeExists, checkAddressExists)
+    val validatedOrder = this@placeOrder.validateOrder(checkCodeExists)
 
     val pricedOrder = validatedOrder.priceOrder(getProductPrice)
 

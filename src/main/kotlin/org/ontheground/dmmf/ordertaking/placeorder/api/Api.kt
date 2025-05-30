@@ -38,7 +38,7 @@ data class HttpResponse(
 )
 
 /// An API takes a HttpRequest as input and returns a async response
-typealias PlaceOrderApi = suspend (HttpRequest) -> HttpResponse
+typealias PlaceOrderApi = suspend context(AddressVerificationService) (HttpRequest) -> HttpResponse
 
 
 // =============================
@@ -51,7 +51,6 @@ typealias PlaceOrderApi = suspend (HttpRequest) -> HttpResponse
 
 // setup dummy dependencies
 private val checkProductExists: CheckProductCodeExists = { true } // dummy implementation
-private val checkAddressExists: CheckAddressExists = { it }
 private val getProductPrice: GetProductPrice = { Price.unsafeCreate(1.0) }  // dummy implementation
 private val createOrderAcknowledgmentLetter: CreateOrderAcknowledgmentLetter = { HtmlString("some text") }
 private val sendOrderAcknowledgment: SendOrderAcknowledgment = { Sent }
@@ -72,7 +71,6 @@ val placeOrderApi: PlaceOrderApi = {
                 .toUnvalidatedOrder()
                 .placeOrder(
                     checkProductExists, // dependency
-                    checkAddressExists, // dependency
                     getProductPrice,    // dependency
                     createOrderAcknowledgmentLetter,  // dependency
                     sendOrderAcknowledgment, // dependency
