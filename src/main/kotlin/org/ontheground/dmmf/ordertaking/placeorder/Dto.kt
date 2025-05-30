@@ -204,7 +204,7 @@ data class OrderPlacedDto(
 /// Convert a OrderPlaced object into the corresponding DTO.
 /// Used when exporting from the domain to the outside world.
 context(_: Raise<ErrPrimitiveConstraints>)
-fun OrderPlaced.toDto() = OrderPlacedDto(
+fun PlaceOrderEvent.OrderPlaced.toDto() = OrderPlacedDto(
     this.orderId.value,
     this.customerInfo.toDto(),
     this.shippingAddress.toDto(),
@@ -229,7 +229,7 @@ data class BillableOrderPlacedDto(
 /// Convert a BillableOrderPlaced object into the corresponding DTO.
 /// Used when exporting from the domain to the outside world.
 context(_: Raise<ErrPrimitiveConstraints>)
-fun BillableOrderPlaced.toDto() = BillableOrderPlacedDto(
+fun PlaceOrderEvent.BillableOrderPlaced.toDto() = BillableOrderPlacedDto(
     this.orderId.value,
     this.billingAddress.toDto(),
     this.amountToBill.value,
@@ -250,7 +250,7 @@ data class OrderAcknowledgmentSentDto(
 /// Convert a OrderAcknowledgmentSent object into the corresponding DTO.
 /// Used when exporting from the domain to the outside world.
 context(_: Raise<ErrPrimitiveConstraints>)
-fun OrderAcknowledgmentSent.toDto() = OrderAcknowledgmentSentDto(
+fun PlaceOrderEvent.OrderAcknowledgmentSent.toDto() = OrderAcknowledgmentSentDto(
     this.orderId.value,
     this.emailAddress.value,
 )
@@ -268,9 +268,9 @@ typealias PlaceOrderEventDto = Map<String, Any>
 /// Used when exporting from the domain to the outside world.
 context(_: Raise<ErrPrimitiveConstraints>)
 fun PlaceOrderEvent.toDto(): PlaceOrderEventDto = when (this) {
-    is OrderPlaced -> mapOf("OrderPlaced" to this.toDto())
-    is BillableOrderPlaced -> mapOf("BillableOrderPlaced" to this.toDto())
-    is OrderAcknowledgmentSent -> mapOf("OrderAcknowledgmentSent" to this.toDto())
+    is PlaceOrderEvent.OrderPlaced -> mapOf("OrderPlaced" to this.toDto())
+    is PlaceOrderEvent.BillableOrderPlaced -> mapOf("BillableOrderPlaced" to this.toDto())
+    is PlaceOrderEvent.OrderAcknowledgmentSent -> mapOf("OrderAcknowledgmentSent" to this.toDto())
 }
 
 //===============================================

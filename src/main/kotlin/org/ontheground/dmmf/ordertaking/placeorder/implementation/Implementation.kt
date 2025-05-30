@@ -3,6 +3,7 @@ package org.ontheground.dmmf.ordertaking.placeorder.implementation
 import arrow.core.raise.Raise
 import arrow.core.raise.withError
 import org.ontheground.dmmf.ordertaking.common.*
+import org.ontheground.dmmf.ordertaking.common.domain.base.Entity
 import org.ontheground.dmmf.ordertaking.placeorder.*
 
 // ======================================================
@@ -47,7 +48,10 @@ class ValidatedOrderLine(
     val orderLineId: OrderLineId,
     val productCode: ProductCode,
     val quantity: OrderQuantity,
-)
+) : Entity<OrderLineId>() {
+    override val id: OrderLineId
+        get() = orderLineId
+}
 
 class ValidatedOrder(
     val orderId: OrderId,
@@ -55,7 +59,10 @@ class ValidatedOrder(
     val shippingAddress: Address,
     val billingAddress: Address,
     val lines: List<ValidatedOrderLine>,
-)
+) : Entity<OrderId>() {
+    override val id: OrderId
+        get() = orderId
+}
 
 typealias ValidateOrder = suspend context(Raise<ValidationError>) // effects
 UnvalidatedOrder. // input
@@ -92,9 +99,9 @@ typealias CreateOrderAcknowledgmentLetter =
             (PricedOrder) -> HtmlString
 
 /// Send the order acknowledgement to the customer
-/// Note that this does NOT generate an Result-type error (at least not in this workflow)
+/// Note that this does NOT generate a Result-type error (at least not in this workflow)
 /// because on failure we will continue anyway.
-/// On success, we will generate a OrderAcknowledgmentSent event,
+/// On success, we will generate an OrderAcknowledgmentSent event,
 /// but on failure we won't.
 
 sealed interface SendResult
@@ -106,14 +113,14 @@ typealias SendOrderAcknowledgment =
 
 typealias AcknowledgeOrder = PricedOrder. //input
     (CreateOrderAcknowledgmentLetter, SendOrderAcknowledgment)      // dependency
--> OrderAcknowledgmentSent? // output
+-> PlaceOrderEvent.OrderAcknowledgmentSent? // output
 
 // ---------------------------
 // Create events
 // ---------------------------
 
 typealias CreateEvents =
-            (PricedOrder, OrderAcknowledgmentSent?)    // input (event from previous step)
+            (PricedOrder, PlaceOrderEvent.OrderAcknowledgmentSent?)    // input (event from the previous step)
         -> List<PlaceOrderEvent>              // output
 
 // ======================================================
@@ -272,7 +279,7 @@ val acknowledgeOrder: AcknowledgeOrder = { createAck, sendAck ->
     // if the acknowledgement was successfully sent,
     // return the corresponding event, else return None
     when (sendAck(ack)) {
-        Sent -> OrderAcknowledgmentSent(
+        Sent -> PlaceOrderEvent.OrderAcknowledgmentSent(
             this.orderId,
             this.customerInfo.emailAddress,
         )
@@ -286,7 +293,7 @@ val acknowledgeOrder: AcknowledgeOrder = { createAck, sendAck ->
 // Create events
 // ---------------------------
 
-fun PricedOrder.createOrderPlacedEvent(): OrderPlaced = OrderPlaced(
+fun PricedOrder.createOrderPlacedEvent() = PlaceOrderEvent.OrderPlaced(
     this.orderId,
     this.customerInfo,
     this.shippingAddress,
@@ -295,10 +302,10 @@ fun PricedOrder.createOrderPlacedEvent(): OrderPlaced = OrderPlaced(
     this.lines,
 )
 
-fun PricedOrder.createBillingEvent(): BillableOrderPlaced? {
+fun PricedOrder.createBillingEvent(): PlaceOrderEvent.BillableOrderPlaced? {
     val billingAmount = this.amountToBill.value
     return if (billingAmount > 0) {
-        BillableOrderPlaced(
+        PlaceOrderEvent.BillableOrderPlaced(
             this.orderId,
             this.billingAddress,
             this.amountToBill,
