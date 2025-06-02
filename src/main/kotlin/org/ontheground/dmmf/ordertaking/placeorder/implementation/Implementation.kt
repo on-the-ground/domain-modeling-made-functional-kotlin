@@ -35,12 +35,13 @@ sealed interface AddressValidationError
 object InvalidFormat : AddressValidationError
 object AddressNotFound : AddressValidationError
 
-typealias CheckedAddress = UnvalidatedAddress
+@JvmInline
+value class CheckedAddress(val value: UnvalidatedAddress)
 
 typealias CheckAddressExists =
         suspend context(Raise<AddressValidationError>) (UnvalidatedAddress) -> CheckedAddress
 
-interface AddressVerificationService {
+interface AddressValidator {
     val checkAddressExists: CheckAddressExists
 }
 
@@ -68,7 +69,7 @@ class ValidatedOrder(
         get() = orderId
 }
 
-typealias ValidateOrder = suspend context(Raise<ValidationError>, AddressVerificationService) // effects
+typealias ValidateOrder = suspend context(Raise<ValidationError>, AddressValidator) // effects
 UnvalidatedOrder. // input
     (CheckProductCodeExists)  // dependency
 -> ValidatedOrder // output
@@ -115,8 +116,13 @@ object NotSent : SendResult
 typealias SendOrderAcknowledgment =
             (OrderAcknowledgment) -> SendResult
 
-typealias AcknowledgeOrder = PricedOrder. //input
-    (CreateOrderAcknowledgmentLetter, SendOrderAcknowledgment)      // dependency
+interface AcknowledgmentSender {
+    val sendOrderAcknowledgment: SendOrderAcknowledgment
+}
+
+typealias AcknowledgeOrder = context(AcknowledgmentSender) // ambient context
+PricedOrder. //input
+    (CreateOrderAcknowledgmentLetter)      // dependency
 -> PlaceOrderEvent.OrderAcknowledgmentSent? // output
 
 // ---------------------------
@@ -152,7 +158,7 @@ context(r: Raise<ValidationError>)
 fun CheckedAddress.toAddress(): Address = r.withError(
     { ValidationError(it.toString()) },
     {
-        val checked = this@toAddress
+        val checked = this@toAddress.value
         val addressLine1 = String50(checked.addressLine1)
         val addressLine2 = checked.addressLine2?.let { String50(it) }
         val addressLine3 = checked.addressLine3?.let { String50(it) }
@@ -165,11 +171,11 @@ fun CheckedAddress.toAddress(): Address = r.withError(
 
 
 /// Call the checkAddressExists and convert the error to a ValidationError
-context(r: Raise<ValidationError>, avs: AddressVerificationService)
+context(r: Raise<ValidationError>, av: AddressValidator)
 suspend fun UnvalidatedAddress.toCheckedAddress(): CheckedAddress =
     r.withError<ValidationError, AddressValidationError, CheckedAddress>(
         { ValidationError(it.toString()) },
-        { avs.checkAddressExists(this@toCheckedAddress) },
+        { av.checkAddressExists(this@toCheckedAddress) },
     )
 
 /// Helper function for validateOrder
@@ -218,17 +224,12 @@ fun UnvalidatedOrderLine.toValidatedOrderLine(checkProductExists: CheckProductCo
 }
 
 val validateOrder: ValidateOrder = { checkCodeExists ->
-    val orderId = this.orderId.toOrderId()
-    val customerInfo = this.customerInfo.toCustomerInfo()
-    val shippingAddress = this.shippingAddress.toCheckedAddress().toAddress()
-    val billingAddress = this.billingAddress.toCheckedAddress().toAddress()
-    val lines = this.lines.map { it.toValidatedOrderLine(checkCodeExists) }
     ValidatedOrder(
-        orderId,
-        customerInfo,
-        shippingAddress,
-        billingAddress,
-        lines,
+        orderId = this.orderId.toOrderId(),
+        customerInfo = this.customerInfo.toCustomerInfo(),
+        shippingAddress = this.shippingAddress.toCheckedAddress().toAddress(),
+        billingAddress = this.billingAddress.toCheckedAddress().toAddress(),
+        lines = this.lines.map { it.toValidatedOrderLine(checkCodeExists) },
     )
 }
 
@@ -275,22 +276,21 @@ fun ValidatedOrder.priceOrder(getProductPrice: GetProductPrice): PricedOrder {
 // AcknowledgeOrder step
 // ---------------------------
 
-val acknowledgeOrder: AcknowledgeOrder = { createAck, sendAck ->
-    val ack = OrderAcknowledgment(
-        this.customerInfo.emailAddress,
-        letter = createAck(this),
-    )
+context(aS: AcknowledgmentSender)
+fun PricedOrder.acknowledgeOrder(createAck: CreateOrderAcknowledgmentLetter) =
     // if the acknowledgement was successfully sent,
     // return the corresponding event, else return None
-    when (sendAck(ack)) {
-        Sent -> PlaceOrderEvent.OrderAcknowledgmentSent(
-            this.orderId,
-            this.customerInfo.emailAddress,
-        )
+    OrderAcknowledgment(this.customerInfo.emailAddress, createAck(this))
+        .let {
+            when (aS.sendOrderAcknowledgment(it)) {
+                Sent -> PlaceOrderEvent.OrderAcknowledgmentSent(
+                    this.orderId,
+                    this.customerInfo.emailAddress,
+                )
 
-        NotSent -> null
-    }
-}
+                NotSent -> null
+            }
+        }
 
 
 // ---------------------------
@@ -332,12 +332,11 @@ val createEvents: CreateEvents = { pricedOrder, ackSent ->
 // overall workflow
 // ---------------------------
 
-context(r: Raise<PlaceOrderError>, _: AddressVerificationService)
+context(r: Raise<PlaceOrderError>, _: AddressValidator, _: AcknowledgmentSender)
 suspend fun UnvalidatedOrder.placeOrder(
     checkCodeExists: CheckProductCodeExists,
     getProductPrice: GetProductPrice,
     createOrderAcknowledgmentLetter: CreateOrderAcknowledgmentLetter,
-    sendOrderAcknowledgment: SendOrderAcknowledgment,
 ): List<PlaceOrderEvent> {
     val validatedOrder = r.withError(
         { ValidationError(it.toString()) },
@@ -349,8 +348,10 @@ suspend fun UnvalidatedOrder.placeOrder(
         { validatedOrder.priceOrder(getProductPrice) }
     )
 
-    val acknowledgementOption = pricedOrder.acknowledgeOrder(createOrderAcknowledgmentLetter, sendOrderAcknowledgment)
-
-    return createEvents(pricedOrder, acknowledgementOption)
+    return pricedOrder.toPlaceOrderEvents(createOrderAcknowledgmentLetter)
 }
+
+context(_: AcknowledgmentSender)
+fun PricedOrder.toPlaceOrderEvents(createAck: CreateOrderAcknowledgmentLetter): List<PlaceOrderEvent> =
+    createEvents(this, this.acknowledgeOrder(createAck))
 
