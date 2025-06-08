@@ -51,7 +51,7 @@ object ConstrainedType {
 
     /// Create a constrained decimal using the constructor provided
     /// Return IllegalArgumentException if input is less than minVal or more than maxVal
-    context(r: Raise<ErrNumberInBetween>)
+    context(r: Raise<ErrPrimitiveConstraints>)
     fun <T> ensureDoubleInBetween(
         minVal: Double,
         maxVal: Double,
@@ -65,7 +65,7 @@ object ConstrainedType {
 
     /// Create a constrained string using the constructor provided
     /// Return IllegalArgumentException if input is null. empty, or does not match the regex pattern
-    context(r: Raise<ErrStringLike>)
+    context(r: Raise<ErrPrimitiveConstraints>)
     fun <T> ensureStringLike(
         pattern: String,
         i: String,

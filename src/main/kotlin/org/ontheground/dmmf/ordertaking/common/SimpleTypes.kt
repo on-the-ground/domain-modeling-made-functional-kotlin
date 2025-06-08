@@ -100,12 +100,22 @@ value class GizmoCode private constructor(val value: String) {
 }
 
 ///// A ProductCode is either a Widget or a Gizmo
-sealed interface ProductCode {
-    @JvmInline
-    value class Widget(val value: WidgetCode) : ProductCode
+sealed class ProductCode {
+    companion object {
+        /// Create a ProductCode from a string
+        /// Raise ErrPrimitiveConstraints if input is null, empty, or not matching pattern
+        context(r: Raise<ErrPrimitiveConstraints>)
+        operator fun invoke(code: String) = ConstrainedType.ensureStringLike("""W\d{4}|G\d{3}""", code) {
+            when {
+                code.startsWith("W") -> ProductCode.Widget(WidgetCode(code))
+                code.startsWith("G") -> ProductCode.Gizmo(GizmoCode(code))
+            }
+        }
+    }
 
-    @JvmInline
-    value class Gizmo(val value: GizmoCode) : ProductCode
+    data class Widget(val value: WidgetCode) : ProductCode()
+
+    data class Gizmo(val value: GizmoCode) : ProductCode()
 
     /// Return the string value inside a ProductCode
     fun value() = when (this) {
@@ -113,18 +123,6 @@ sealed interface ProductCode {
         is Gizmo -> this.value.value
     }
 }
-
-/// Create a ProductCode from a string
-/// Raise ErrPrimitiveConstraints if input is null, empty, or not matching pattern
-context(r: Raise<ErrPrimitiveConstraints>)
-fun ProductCode(str: String): ProductCode =
-    ConstrainedType.ensureStringLike("""W\d{4}|G\d{3}""", str) {
-        when {
-            str.startsWith("W") -> ProductCode.Widget(WidgetCode(str))
-            str.startsWith("G") -> ProductCode.Gizmo(GizmoCode(str))
-            else -> throw (RuntimeException("Invalid widget code: $str"))
-        }
-    }
 
 /// A Quantity is either a Unit or a Kilogram
 sealed interface OrderQuantity {

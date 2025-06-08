@@ -41,7 +41,7 @@ data class CustomerInfoDto(
 
     /// Convert the DTO into a CustomerInfo object
     /// Used when importing from the outside world into the domain, eg loading from a database
-    context(r: Raise<ErrPrimitiveConstraints>)
+    context(_: Raise<ErrPrimitiveConstraints>)
     fun toDomain() = CustomerInfo(
         PersonalName(
             String50(this.firstName),
@@ -92,7 +92,7 @@ data class AddressDto(
     /// Convert the DTO into a Address object
     /// Used when importing from the outside world into the domain, eg loading from a database.
     context(r: Raise<ErrPrimitiveConstraints>)
-    fun toAddress() = Address(
+    fun toDomain() = Address(
         String50(this.addressLine1),
         this.addressLine2?.let { String50(it) },
         this.addressLine3?.let { String50(it) },
