@@ -1,8 +1,8 @@
 
 plugins {
-	kotlin("jvm") version "2.2.0-RC"
-	kotlin("kapt") version "2.2.0-RC"
-	kotlin("plugin.serialization") version "2.2.0-RC"
+	kotlin("jvm") version "2.2.0"
+	kotlin("kapt") version "2.2.0"
+	kotlin("plugin.serialization") version "2.2.0"
 }
 
 group = "org.ontheground"

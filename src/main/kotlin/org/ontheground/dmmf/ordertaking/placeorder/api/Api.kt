@@ -37,7 +37,7 @@ data class HttpResponse(
     val body: JsonString,
 )
 
-/// An API takes a HttpRequest as input and returns a async response
+/// An API takes a HttpRequest as input and returns an async response
 typealias PlaceOrderApi = suspend context(AddressValidator, AcknowledgmentSender) (HttpRequest) -> HttpResponse
 
 
@@ -74,12 +74,12 @@ val placeOrderApi: PlaceOrderApi = {
                     createOrderAcknowledgmentLetter,  // dependency
                 )
 
-            withError({ ValidationError(it.toString()) }, {
+            withError({ ValidationError(it.toString()) }) {
                 placeOrderEvents
                     .map { it.toDto() }
                     .toJson()
                     .let { HttpResponse(200, it) }
-            })
+            }
         },
         {
             it.toDto() // turn domain errors into a dto

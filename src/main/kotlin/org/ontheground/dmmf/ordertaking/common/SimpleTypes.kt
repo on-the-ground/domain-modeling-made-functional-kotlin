@@ -105,10 +105,11 @@ sealed class ProductCode {
         /// Create a ProductCode from a string
         /// Raise ErrPrimitiveConstraints if input is null, empty, or not matching pattern
         context(r: Raise<ErrPrimitiveConstraints>)
-        operator fun invoke(code: String) = ConstrainedType.ensureStringLike("""W\d{4}|G\d{3}""", code) {
+        operator fun invoke(code: String): ProductCode = ConstrainedType.ensureStringLike("""W\d{4}|G\d{3}""", code)  {
             when {
                 code.startsWith("W") -> ProductCode.Widget(WidgetCode(code))
                 code.startsWith("G") -> ProductCode.Gizmo(GizmoCode(code))
+                else -> error("Unreachable: code passed regex but does not start with W or G")
             }
         }
     }
@@ -133,7 +134,7 @@ sealed interface OrderQuantity {
             /// Create a KilogramQuantity from a decimal.
             /// Raise ErrPrimitiveConstraints if input is not a decimal between 0.05 and 100.00
             context(_: Raise<ErrPrimitiveConstraints>)
-            operator fun invoke(i: Double) = ConstrainedType.ensureDoubleInBetween(0.05, 100.00, i) { Kilogram(i) }
+            operator fun invoke(i: Double): Kilogram = ConstrainedType.ensureDoubleInBetween(0.05, 100.00, i) { Kilogram(i) }
         }
     }
 
@@ -144,7 +145,7 @@ sealed interface OrderQuantity {
             /// Create a UnitQuantity from an int
             /// Raise ErrPrimitiveConstraints if input is not an integer between 1 and 1000
             context(_: Raise<ErrPrimitiveConstraints>)
-            operator fun invoke(i: Int) = ConstrainedType.ensureIntInBetween(1, 1000, i) { Unit(i) }
+            operator fun invoke(i: Int): Unit = ConstrainedType.ensureIntInBetween(1, 1000, i) { Unit(i) }
         }
     }
 
