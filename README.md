@@ -2,6 +2,9 @@
 
 This project is a Kotlin rewrite of the original **Domain Modeling Made Functional** F# project by Scott Wlaschin.
 
+## Errata
+[Kotlin Code Errata](https://github.com/on-the-ground/domain-modeling-made-functional-kotlin/issues/23#issue-5253739039)
+
 ## Original Project
 - Repository: [DomainModelingMadeFunctional (F#)](https://github.com/swlaschin/DomainModelingMadeFunctional)
 - Author: **Scott Wlaschin**
